@@ -1,4 +1,4 @@
-# @boilerplate/mailer
+# @crownstack/mailer
 
 A lightweight NestJS email service package using Nodemailer with development preview support.
 
@@ -25,7 +25,7 @@ npm install
 
 ```typescript
 // app.module.ts
-import { MailerModule } from '@boilerplate/mailer';
+import { MailerModule } from '@crownstack/mailer';
 
 @Module({
   imports: [
@@ -48,7 +48,7 @@ export class AppModule {}
 ### 2. Async Configuration (Recommended)
 
 ```typescript
-import { MailerModule } from '@boilerplate/mailer';
+import { MailerModule } from '@crownstack/mailer';
 import { ConfigService } from '@nestjs/config';
 
 @Module({
@@ -77,7 +77,7 @@ export class AppModule {}
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { MailerService } from '@boilerplate/mailer';
+import { MailerService } from '@crownstack/mailer';
 
 @Injectable()
 export class NotificationService {

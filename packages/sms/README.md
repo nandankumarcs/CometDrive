@@ -1,4 +1,4 @@
-# @boilerplate/sms
+# @crownstack/sms
 
 A lightweight NestJS SMS service package using Twilio with development preview support.
 
@@ -24,7 +24,7 @@ npm install
 
 ```typescript
 // app.module.ts
-import { SmsModule } from '@boilerplate/sms';
+import { SmsModule } from '@crownstack/sms';
 
 @Module({
   imports: [
@@ -42,7 +42,7 @@ export class AppModule {}
 ### 2. Async Configuration (Recommended)
 
 ```typescript
-import { SmsModule } from '@boilerplate/sms';
+import { SmsModule } from '@crownstack/sms';
 import { ConfigService } from '@nestjs/config';
 
 @Module({
@@ -66,7 +66,7 @@ export class AppModule {}
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { SmsService } from '@boilerplate/sms';
+import { SmsService } from '@crownstack/sms';
 
 @Injectable()
 export class NotificationService {

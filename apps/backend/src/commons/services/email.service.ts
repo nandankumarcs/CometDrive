@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MailerService, MailResponse } from '@boilerplate/mailer';
+import { MailerService, MailResponse } from '@crownstack/mailer';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Handlebars from 'handlebars';

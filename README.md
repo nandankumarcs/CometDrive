@@ -8,7 +8,22 @@
   <a href="https://nx.dev" target="_blank"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="60" alt="Nx" /></a>
 </p>
 
-A production-ready monorepo boilerplate with NestJS backend, Next.js frontend, and reusable packages.
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
+  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node Version" />
+  <img src="https://img.shields.io/badge/npm-%3E%3D9.0.0-red.svg" alt="NPM Version" />
+  <img src="https://img.shields.io/badge/typescript-5.9-blue.svg" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/nestjs-11.0-red.svg" alt="NestJS" />
+  <img src="https://img.shields.io/badge/next.js-16.0-black.svg" alt="Next.js" />
+</p>
+
+<p align="center">
+  <strong>A production-ready monorepo boilerplate with NestJS backend, Next.js frontend, and reusable packages.</strong>
+</p>
+
+<p align="center">
+  Built with ❤️ by <a href="https://crownstack.com" target="_blank">CrownStack</a>
+</p>
 
 ## ✨ Features
 
@@ -38,8 +53,8 @@ A production-ready monorepo boilerplate with NestJS backend, Next.js frontend, a
 
 ### Packages (Reusable)
 
-- 📧 `@boilerplate/mailer` - Email sending with Nodemailer
-- 📱 `@boilerplate/sms` - SMS sending with Twilio
+- 📧 `@crownstack/mailer` - Email sending with Nodemailer
+- 📱 `@crownstack/sms` - SMS sending with Twilio
 
 ### Developer Experience
 
@@ -61,8 +76,8 @@ A production-ready monorepo boilerplate with NestJS backend, Next.js frontend, a
 │   └── frontend-e2e/         # Frontend E2E tests (Playwright)
 │
 ├── packages/
-│   ├── mailer/               # @boilerplate/mailer
-│   └── sms/                  # @boilerplate/sms
+│   ├── mailer/               # @crownstack/mailer
+│   └── sms/                  # @crownstack/sms
 │
 ├── nx.json                   # Nx configuration
 ├── package.json              # Root dependencies
@@ -133,12 +148,12 @@ npx nx run-many --target=serve --projects=backend,frontend
 
 ## 📦 Packages
 
-### @boilerplate/mailer
+### @crownstack/mailer
 
 Lightweight email service with Nodemailer.
 
 ```typescript
-import { MailerService } from '@boilerplate/mailer';
+import { MailerService } from '@crownstack/mailer';
 
 await mailerService.sendMail({
   to: 'user@example.com',
@@ -149,12 +164,12 @@ await mailerService.sendMail({
 
 [📖 Full Documentation](./packages/mailer/README.md)
 
-### @boilerplate/sms
+### @crownstack/sms
 
 SMS service with Twilio integration.
 
 ```typescript
-import { SmsService } from '@boilerplate/sms';
+import { SmsService } from '@crownstack/sms';
 
 await smsService.sendSms({
   to: '+1234567890',

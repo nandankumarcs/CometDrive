@@ -10,10 +10,10 @@
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
-      "@boilerplate/mailer": ["../../packages/mailer/src/index.ts"],
-      "@boilerplate/mailer/*": ["../../packages/mailer/src/*"],
-      "@boilerplate/sms": ["../../packages/sms/src/index.ts"],
-      "@boilerplate/sms/*": ["../../packages/sms/src/*"]
+      "@crownstack/mailer": ["../../packages/mailer/src/index.ts"],
+      "@crownstack/mailer/*": ["../../packages/mailer/src/*"],
+      "@crownstack/sms": ["../../packages/sms/src/index.ts"],
+      "@crownstack/sms/*": ["../../packages/sms/src/*"]
     }
   },
   "include": ["src/**/*.ts", "../../packages/*/src/**/*.ts"],

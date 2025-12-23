@@ -35,7 +35,7 @@ export default registerAs<AppConfig>('app', () => {
     name: process.env.APP_NAME || 'NestJS Boilerplate',
     frontendDomain: process.env.FRONTEND_DOMAIN ?? 'http://localhost:3000',
     backendDomain: process.env.BACKEND_DOMAIN ?? 'http://localhost',
-    port: process.env.APP_PORT ? parseInt(process.env.APP_PORT, 10) : 3000,
+    port: process.env.APP_PORT ? parseInt(process.env.APP_PORT, 10) : 3001,
     apiPrefix: process.env.API_PREFIX ?? 'api',
   };
 });

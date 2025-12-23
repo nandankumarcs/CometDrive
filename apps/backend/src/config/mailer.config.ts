@@ -53,7 +53,7 @@ export default registerAs<MailerConfigType>('mailer', () => {
     secure: process.env.MAIL_SECURE === 'true',
     user: process.env.MAIL_USER || '',
     pass: process.env.MAIL_PASS || '',
-    defaultFrom: process.env.MAIL_FROM || 'noreply@boilerplate.com',
+    defaultFrom: process.env.MAIL_FROM || 'noreply@crownstack.com',
     previewEmail: process.env.MAIL_PREVIEW === 'true' || isDev,
   };
 });

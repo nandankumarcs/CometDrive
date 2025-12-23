@@ -33,8 +33,8 @@ A production-ready NestJS backend boilerplate with authentication, authorization
 
 - **Email & SMS**
 
-  - Email sending via `@boilerplate/mailer` package
-  - SMS sending via `@boilerplate/sms` package
+  - Email sending via `@crownstack/mailer` package
+  - SMS sending via `@crownstack/sms` package
   - Dev preview mode (opens in browser)
   - Handlebars email templates
 
@@ -320,7 +320,7 @@ When `MAIL_PREVIEW=true`, emails open in your browser via Ethereal instead of be
 ### Usage
 
 ```typescript
-import { SmsService } from '@boilerplate/sms';
+import { SmsService } from '@crownstack/sms';
 
 @Injectable()
 export class MyService {

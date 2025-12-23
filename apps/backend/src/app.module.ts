@@ -7,8 +7,8 @@ import { authConfig, mailerConfig, smsConfig, appConfig } from './config';
 import { AllConfigType } from './config/config.type';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeConfigService } from './database/sequelize-config.service';
-import { MailerModule } from '@boilerplate/mailer';
-import { SmsModule } from '@boilerplate/sms';
+import { MailerModule } from '@crownstack/mailer';
+import { SmsModule } from '@crownstack/sms';
 import { EmailService } from '@src/commons/services';
 
 // Modules

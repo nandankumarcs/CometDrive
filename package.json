@@ -1,14 +1,49 @@
 {
-  "name": "boilerplate-nx",
-  "description": "Boilerplate for Nx workspace with Next.js and NestJS",
-  "version": "0.0.0",
+  "name": "@crownstack/boilerplate-nest-next",
+  "description": "Production-ready full-stack boilerplate with NestJS backend, Next.js frontend, and reusable packages. Includes authentication, multi-tenancy, database migrations, and modern tooling.",
+  "version": "1.0.0",
   "license": "MIT",
+  "author": {
+    "name": "CrownStack",
+    "url": "https://crownstack.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crownstack/boilerplate-nest-next.git"
+  },
+  "homepage": "https://github.com/crownstack/boilerplate-nest-next#readme",
+  "bugs": {
+    "url": "https://github.com/crownstack/boilerplate-nest-next/issues"
+  },
+  "keywords": [
+    "nestjs",
+    "nextjs",
+    "typescript",
+    "fullstack",
+    "boilerplate",
+    "monorepo",
+    "nx",
+    "postgresql",
+    "sequelize",
+    "authentication",
+    "jwt",
+    "multi-tenant",
+    "tailwindcss",
+    "tanstack-query",
+    "zustand",
+    "zod",
+    "swagger",
+    "openapi",
+    "crownstack",
+    "starter-template",
+    "production-ready"
+  ],
   "scripts": {
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,scss,md,html,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,scss,md,html,yml,yaml}\"",
     "format:fix": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,scss,md,html,yml,yaml}\""
   },
-  "private": true,
+  "private": false,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",
@@ -83,5 +118,9 @@
     "rxjs": "^7.8.0",
     "zod": "^4.2.1",
     "zustand": "^5.0.9"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }

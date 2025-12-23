@@ -1,212 +1,221 @@
-# Contributing Guidelines
+# Contributing to CrownStack Boilerplate
 
-Welcome! We appreciate your interest in contributing to this project. This guide outlines the process for contributing code, documentation, or other improvements.
+Thank you for your interest in contributing to CrownStack's Full-Stack Boilerplate! We welcome contributions from the community.
 
-## Before You Contribute
+## 🤝 How to Contribute
 
-1. Review the codebase: Familiarize yourself with the project's code and structure.
-2. Fork the repository: Create a fork of the repository on your GitHub account.
-3. Set up a development environment: Install the necessary tools and dependencies
+### Reporting Bugs
 
-### How to Contribute
+If you find a bug, please create an issue with:
 
-1. Create a new branch: Create a new branch on your forked repository for your specific contribution.
-2. Make changes: Make your changes to the code or documentation.
-3. Commit your changes: Write clear and concise commit messages that describe your changes.
-4. Test your changes: Thoroughly test your changes to ensure they don't introduce regressions.
-5. Push your changes: Push your changes to your forked repository branch.
-6. Open a pull request: Create a pull request on the main repository proposing your changes.
+- A clear description of the bug
+- Steps to reproduce
+- Expected vs actual behavior
+- Environment details (OS, Node version, etc.)
+- Screenshots if applicable
 
-### Creating a Pull Request (PR)
+### Suggesting Features
 
-Before you submit your Pull Request (PR) consider the following guidelines:
+We love feature suggestions! Please create an issue with:
 
-1. Create a branch from `dev` and make your changes on it:
+- A clear description of the feature
+- Use cases and examples
+- Why this feature would be useful
 
-   ```shell
-   git checkout -b <branch-name>
-   ```
+### Submitting Pull Requests
 
-2. Push those changes on GitHub:
-
-   ```shell
-   git push -u origin <branch-name>
-   ```
-
-3. If you’ve fixed a bug or added code that should be tested, add tests!
-4. Ensure that all tests pass:
+1. **Fork the repository**
+2. **Create a feature branch**
 
    ```bash
-   # To run the tests in headless mode, (hides the browser)
-   yarn test-run
-
-   # To run the tests in browser
-   yarn test-open
+   git checkout -b feature/amazing-feature
    ```
 
-5. Before creating a PR, build the project in your local system, ensuring no
-   build error:
-   ```shell
-   yarn build
+3. **Make your changes**
+
+   - Follow the existing code style
+   - Add tests for new features
+   - Update documentation as needed
+
+4. **Run tests and linting**
+
+   ```bash
+   npm run format:check
+   npx nx lint backend
+   npx nx lint frontend
+   npx nx test backend
+   npx nx test frontend
    ```
-6. In GitHub, send a pull request to `dev`.
 
-### After your pull request is merged
+5. **Commit your changes**
 
-After your pull request is merged, you can safely delete your branch and pull
-the changes from the dev (upstream) repository:
+   ```bash
+   git commit -m "feat: add amazing feature"
+   ```
 
-- Delete the remote branch on GitHub either through the GitHub web UI or your
-  local shell as follows:
+   Use conventional commits:
 
-  ```shell
-  git push origin --delete <branch-name>
-  ```
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation
+   - `style:` for formatting
+   - `refactor:` for code refactoring
+   - `test:` for tests
+   - `chore:` for maintenance
 
-- Check out the dev branch:
+6. **Push to your fork**
 
-  ```shell
-  git checkout dev -f
-  ```
+   ```bash
+   git push origin feature/amazing-feature
+   ```
 
-- Delete the local branch:
+7. **Create a Pull Request**
+   - Fill out the PR template
+   - Link any related issues
+   - Request review from maintainers
 
-  ```shell
-  git branch -D <branch-name>
-  ```
+## 📋 Code Style Guidelines
 
-- Update your dev with the latest upstream version:
+### TypeScript
 
-  ```shell
-  git pull origin dev
-  ```
+- Use TypeScript strict mode
+- Define interfaces for all data structures
+- Use meaningful variable and function names
+- Add JSDoc comments for public APIs
 
-### Style Guide
+### Formatting
 
-We use code formatter [Prettier](https://prettier.io/) with
-[husky](https://github.com/typicode/husky) &
-[lint-staged](https://github.com/okonet/lint-staged) which automatically format
-supported files that are marked as “staged” via `git add` before you commit.
+- Use Prettier (configured in `.prettierrc`)
+- Run `npm run format` before committing
+- Follow EditorConfig settings
 
-## <a name="commit-format"></a> Commit Message Format
+### NestJS (Backend)
 
-This format leads to **easier to read commit history**.
+- Follow SOLID principles
+- Use dependency injection
+- Keep services focused (Single Responsibility)
+- Use DTOs for data validation
+- Add Swagger decorators for API docs
 
-Each commit message consists of a **header**, a **body**, and a **footer**.
+### Next.js (Frontend)
 
-```properties
-header: <type>[optional scope]: <short summary>
+- Use functional components with hooks
+- Keep components small and focused
+- Use TypeScript for type safety
+- Follow React best practices
 
-body: [optional body]
+## 🧪 Testing
 
-footer: [optional footer(s)]
+- Write tests for new features
+- Ensure all tests pass before submitting PR
+- Aim for good test coverage
+
+### Running Tests
+
+```bash
+# Backend tests
+npx nx test backend
+
+# Frontend tests
+npx nx test frontend
+
+# E2E tests
+npx nx e2e backend-e2e
+npx nx e2e frontend-e2e
 ```
 
-#### <a name="commit-header"></a>Commit Message Header
+## 📚 Documentation
+
+- Update README.md if adding new features
+- Add JSDoc comments for public APIs
+- Update API documentation (Swagger)
+- Keep examples up to date
+
+## 🐛 Bug Fixes
+
+When fixing bugs:
+
+1. Add a test that reproduces the bug
+2. Fix the bug
+3. Ensure the test passes
+4. Update documentation if needed
+
+## ✨ New Features
+
+When adding features:
+
+1. Discuss in an issue first (for major features)
+2. Follow existing patterns
+3. Add comprehensive tests
+4. Update documentation
+5. Add examples if applicable
+
+## 🔍 Code Review Process
+
+1. All PRs require review
+2. Address review comments promptly
+3. Keep PRs focused and small when possible
+4. Respond to feedback constructively
+
+## 📝 Commit Messages
+
+Use conventional commits:
 
 ```
-<type>(<optional scope>): <short summary>
-  │             │               │
-  │             │               └─⫸ Summary in present tense. Not capitalized. No period at the end.
-  │             │
-  │             └─⫸ Commit Scope: core|constants|deps
-  │
-  └─⫸ Commit Type: build|ci|docs|feat|fix|perf|refactor|test
+feat: add user authentication endpoint
+fix: resolve session expiration issue
+docs: update API documentation
+style: format code with Prettier
+refactor: extract password service
+test: add unit tests for auth service
+chore: update dependencies
 ```
 
-The `<type>` and `<summary>` fields are mandatory, the `(<scope>)` field is
-optional.
+## 🚀 Getting Started
 
-##### Type
+1. **Clone the repository**
 
-Must be one of the following:
+   ```bash
+   git clone https://github.com/crownstack/boilerplate-nest-next.git
+   cd boilerplate-nest-next
+   ```
 
-- **ci**: Changes to our CI configuration files and scripts
-  - `"ci: add github actions build workflow"`
-- **chore**: Build script configuration edits, dependency package updates and
-  other updates that do not alter production code
+2. **Install dependencies**
 
-  - `"chore(deps): bump next.js v10.0.8 to v12.0.4"`
+   ```bash
+   npm install
+   ```
 
-- **docs**: Documentation only changes
+3. **Set up environment**
 
-  - `"docs: add detailed installation instructions for Windows"`
+   ```bash
+   cp apps/backend/.env.example apps/backend/.env
+   # Edit .env with your configuration
+   ```
 
-- **feat**: A new feature
+4. **Run migrations**
 
-  - `"feat: add ability to filter tests by user"`
+   ```bash
+   cd apps/backend
+   npm run migration:run
+   ```
 
-- **fix**: A bug fix
+5. **Start development**
+   ```bash
+   npx nx serve backend
+   npx nx dev frontend
+   ```
 
-  - `"fix: check if file exists before attempting to unlink"`
+## 📞 Questions?
 
-- **perf**: A code change that improves performance
-  - `"perf: add debounce in searchbox"`
-- **refactor**: A code change that neither fixes a bug nor adds a feature
-  - `"refactor: rename Header component to UserHeader component"`
-- **test**: Adding missing tests or correcting existing tests
-  - `"test: add assertions for Collection update and destroy methods"`
-- **revert**: The commit reverts a previous commit
-  - `"revert: let us never again speak of the noodle incident"`
+- Open an issue for questions
+- Check existing issues and PRs
+- Review the documentation
 
-##### Summary
+## 🙏 Thank You!
 
-Use the summary field to provide a succinct description of the change:
+Your contributions make this project better for everyone. We appreciate your time and effort!
 
-- use the imperative, present tense: "change" not "changed" nor "changes"
-- don't capitalize the first letter
-- no dot (.) at the end
+---
 
-#### <a name="commit-body"></a>Commit Message Body
-
-Explain the motivation for the change in the commit message body. This commit
-message should explain _why_ you are making the change. You can include a
-comparison of the previous behavior with the new behavior in order to illustrate
-the impact of the change.
-
-#### <a name="commit-footer"></a>Commit Message Footer
-
-The footer can contain information about breaking changes and deprecations and
-is also the place to reference GitHub issues, Jira tickets, and other PRs that
-this commit closes or is related to. For example:
-
-```
-BREAKING CHANGE: <breaking change summary>
-<BLANK LINE>
-<breaking change description + migration instructions>
-<BLANK LINE>
-<BLANK LINE>
-Fixes #<issue number>
-```
-
-or
-
-```
-DEPRECATED: <what is deprecated>
-<BLANK LINE>
-<deprecation description + recommended update path>
-<BLANK LINE>
-<BLANK LINE>
-Closes #<pr number>
-```
-
-Breaking Change section should start with the phrase "BREAKING CHANGE: "
-followed by a summary of the breaking change, a blank line, and a detailed
-description of the breaking change that also includes migration instructions.
-
-Similarly, a Deprecation section should start with "DEPRECATED: " followed by a
-short description of what is deprecated, a blank line, and a detailed
-description of the deprecation that also mentions the recommended update path.
-
-### Revert commits
-
-The content of the commit message body should contain:
-
-- information about the SHA of the commit being reverted in the following
-  format: `This reverts commit <SHA>`,
-- a clear description of the reason for reverting the commit message.
-
-### Reference:
-
-- [Conventional Commits](https://conventionalcommits.org)
-- [Angular Commit Message Convention](https://github.com/angular/angular/blob/master/CONTRIBUTING.md/)
+**Built with ❤️ by CrownStack**
