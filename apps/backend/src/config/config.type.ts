@@ -4,6 +4,7 @@ import { AuthConfig } from './auth.config';
 import { MailerConfigType } from './mailer.config';
 import { SmsConfigType } from './sms.config';
 import { RedisConfig } from './redis.config';
+import { FileConfig } from './file.config';
 
 export type AllConfigType = {
   app: AppConfig;
@@ -12,4 +13,5 @@ export type AllConfigType = {
   mailer: MailerConfigType;
   sms: SmsConfigType;
   redis: RedisConfig;
+  file: FileConfig;
 };

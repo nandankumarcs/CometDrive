@@ -8,4 +8,5 @@ export * from './mailer.config';
 export { default as smsConfig } from './sms.config';
 export * from './sms.config';
 export { default as redisConfig } from './redis.config';
+export { default as fileConfig } from './file.config';
 export * from './redis.config';
