@@ -1,0 +1,61 @@
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { HardDrive, Trash2, Cloud } from 'lucide-react';
+
+const navItems = [
+  { name: 'My Drive', href: '/drive', icon: HardDrive },
+  { name: 'Trash', href: '/drive/trash', icon: Trash2 },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen fixed left-0 top-0 pt-16 z-30 transition-colors duration-300">
+      <div className="p-4 flex-1">
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                  isActive
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                <Icon
+                  className={`mr-3 h-5 w-5 ${
+                    isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'
+                  }`}
+                />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Storage Indicator */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center mb-2">
+          <Cloud className="h-5 w-5 text-gray-400 mr-2" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage</span>
+        </div>
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2 overflow-hidden">
+          <div
+            className="bg-primary-600 h-2.5 rounded-full transition-all duration-500"
+            style={{ width: '45%' }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span>4.5 GB used</span>
+          <span>10 GB total</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
