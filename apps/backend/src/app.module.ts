@@ -12,6 +12,8 @@ import { SmsModule } from '@crownstack/sms';
 import { EmailService } from '@src/commons/services';
 import { RedisModule } from './redis';
 import { RateLimiterGuard } from '@src/commons/guards';
+import { AuditLogEntity } from './entities';
+import { AuditService } from '@src/commons/services';
 
 // Modules
 import { LoggerModule } from 'nestjs-pino';
@@ -62,7 +64,7 @@ import { SessionEntity, UserEntity } from './entities';
     }),
 
     // Register entities for global guards
-    SequelizeFeatureModule.forFeature([SessionEntity, UserEntity]),
+    SequelizeFeatureModule.forFeature([SessionEntity, UserEntity, AuditLogEntity]),
 
     // Mailer Package (only for sending)
     MailerModule.forRootAsync({
@@ -111,6 +113,7 @@ import { SessionEntity, UserEntity } from './entities';
   controllers: [AppController],
   providers: [
     EmailService,
+    AuditService,
     // Services needed by global guard
     TokenService,
     SessionService,
@@ -125,6 +128,6 @@ import { SessionEntity, UserEntity } from './entities';
       useClass: RateLimiterGuard,
     },
   ],
-  exports: [EmailService],
+  exports: [EmailService, AuditService],
 })
 export class AppModule {}

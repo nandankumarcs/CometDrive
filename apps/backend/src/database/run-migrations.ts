@@ -44,6 +44,15 @@ class MigrationRunner {
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
       logging: process.env.DATABASE_LOG === 'true' ? console.log : false,
+      dialectOptions:
+        process.env.DATABASE_SSL_ENABLED === 'true'
+          ? {
+              ssl: {
+                require: true,
+                rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === 'true',
+              },
+            }
+          : undefined,
     });
 
     this.migrationsPath = path.join(__dirname, 'migrations');

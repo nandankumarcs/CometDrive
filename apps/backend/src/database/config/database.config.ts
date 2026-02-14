@@ -52,10 +52,20 @@ class EnvironmentVariablesValidator {
   @IsBoolean()
   @IsOptional()
   DATABASE_SYNCHRONIZE!: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  DATABASE_SSL_ENABLED!: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  DATABASE_REJECT_UNAUTHORIZED!: boolean;
 }
 
 export default registerAs<DatabaseConfig>('database', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
+
+  const sslEnabled = process.env.DATABASE_SSL_ENABLED === 'true';
 
   return {
     dialect: (process.env.DATABASE_TYPE ?? DatabaseType.Postgres) as DatabaseConfig['dialect'],
@@ -66,5 +76,13 @@ export default registerAs<DatabaseConfig>('database', () => {
     database: process.env.DATABASE_NAME as string,
     logging: process.env.DATABASE_LOG === 'true',
     synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
+    dialectOptions: sslEnabled
+      ? {
+          ssl: {
+            require: true,
+            rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === 'true',
+          },
+        }
+      : undefined,
   };
 });
