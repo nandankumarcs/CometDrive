@@ -1,10 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordService, TokenService, SessionService } from './services';
 import { JwtAuthGuard, RolesGuard } from './guards';
-import { EmailService } from '@src/commons/services';
 import { InvitationModule } from '../invitation/invitation.module';
 import {
   UserEntity,
@@ -31,7 +30,7 @@ import {
       SessionEntity,
       PasswordResetEntity,
     ]),
-    InvitationModule,
+    forwardRef(() => InvitationModule),
   ],
   controllers: [AuthController],
   providers: [
@@ -46,10 +45,15 @@ import {
     // Guards
     JwtAuthGuard,
     RolesGuard,
-
-    // External services
-    EmailService,
   ],
-  exports: [AuthService, PasswordService, TokenService, SessionService, JwtAuthGuard, RolesGuard],
+  exports: [
+    AuthService,
+    PasswordService,
+    TokenService,
+    SessionService,
+    JwtAuthGuard,
+    RolesGuard,
+    SequelizeModule,
+  ],
 })
 export class AuthModule {}

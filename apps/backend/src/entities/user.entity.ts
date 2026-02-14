@@ -38,7 +38,6 @@ export class UserEntity extends BaseEntity {
 
   @Column({
     type: DataType.VIRTUAL,
-    allowNull: false,
   })
   get full_name(): string {
     return `${this.first_name} ${this.last_name}`.trim();

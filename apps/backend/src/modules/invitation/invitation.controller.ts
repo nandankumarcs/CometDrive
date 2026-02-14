@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 @ApiTags('Invitation')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('invitations')
+@Controller({ path: 'invitations', version: '1' })
 export class InvitationController {
   constructor(private readonly invitationService: InvitationService) {}
 

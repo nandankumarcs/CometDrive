@@ -3,29 +3,30 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app/app.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import databaseConfig from './database/config/database.config';
-import { authConfig, mailerConfig, smsConfig, appConfig, redisConfig } from './config';
+import { authConfig, mailerConfig, smsConfig, appConfig, redisConfig, fileConfig } from './config';
 import { AllConfigType } from './config/config.type';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeConfigService } from './database/sequelize-config.service';
 import { MailerModule } from '@crownstack/mailer';
 import { SmsModule } from '@crownstack/sms';
-import { EmailService } from '@src/commons/services';
+import { CommonsModule } from './commons/commons.module';
 import { RedisModule } from './redis';
 import { RateLimiterGuard } from '@src/commons/guards';
-import { AuditLogEntity } from './entities';
-import { AuditService } from '@src/commons/services';
 
 // Modules
 import { LoggerModule } from 'nestjs-pino';
-import { AuthModule, JwtAuthGuard, TokenService, SessionService } from './modules/auth';
+import { AuthModule, JwtAuthGuard } from './modules/auth';
 import { UserModule } from './modules/user';
 import { OrganizationModule } from './modules/organization';
 import { UserTypeModule } from './modules/user-type';
 import { InvitationModule } from './modules/invitation/invitation.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { FolderModule } from './modules/folder/folder.module';
+import { FileModule } from './modules/file/file.module';
 
 // Entities for guards
 import { SequelizeModule as SequelizeFeatureModule } from '@nestjs/sequelize';
-import { SessionEntity, UserEntity } from './entities';
+import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
 
 /**
  * Application Root Module
@@ -35,9 +36,18 @@ import { SessionEntity, UserEntity } from './entities';
  */
 @Module({
   imports: [
-    // Configuration
+    CommonsModule,
+    StorageModule,
     ConfigModule.forRoot({
-      load: [appConfig, databaseConfig, authConfig, mailerConfig, smsConfig, redisConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        authConfig,
+        mailerConfig,
+        smsConfig,
+        redisConfig,
+        fileConfig,
+      ],
       isGlobal: true,
     }),
 
@@ -111,14 +121,11 @@ import { SessionEntity, UserEntity } from './entities';
     OrganizationModule,
     UserTypeModule,
     InvitationModule,
+    FolderModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [
-    EmailService,
-    AuditService,
-    // Services needed by global guard
-    TokenService,
-    SessionService,
     // Global JWT Auth Guard - protects all routes by default
     {
       provide: APP_GUARD,
@@ -130,6 +137,6 @@ import { SessionEntity, UserEntity } from './entities';
       useClass: RateLimiterGuard,
     },
   ],
-  exports: [EmailService, AuditService],
+  exports: [],
 })
 export class AppModule {}
