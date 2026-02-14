@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Model, ModelStatic, FindOptions, Op } from 'sequelize';
+import { Model, ModelStatic, FindOptions, Op, WhereOptions } from 'sequelize';
 import { BaseCrudServiceInterface, FindAllOptions, PaginatedResult } from './interfaces';
 
 @Injectable()
 export abstract class BaseCrudService<
   T extends Model,
-  CreateDto extends Record<string, unknown>,
-  UpdateDto extends Record<string, unknown>,
+  CreateDto extends object,
+  UpdateDto extends object,
 > implements BaseCrudServiceInterface<T, CreateDto, UpdateDto>
 {
   protected abstract readonly model: ModelStatic<T>;
@@ -36,9 +36,9 @@ export abstract class BaseCrudService<
 
     const findOptions: FindOptions = {
       where: {
-        ...where,
+        ...(where as Record<string, unknown>),
         [this.softDeleteField]: null,
-      },
+      } as WhereOptions,
       order: [[sortBy, sortOrder]],
       limit: safeLimit,
       offset,
@@ -74,8 +74,8 @@ export abstract class BaseCrudService<
       where: {
         id,
         [this.softDeleteField]: null,
-        ...options.where,
-      },
+        ...(options.where as Record<string, unknown>),
+      } as WhereOptions,
       ...options,
     });
 
@@ -97,8 +97,8 @@ export abstract class BaseCrudService<
       where: {
         uuid,
         [this.softDeleteField]: null,
-        ...options.where,
-      },
+        ...(options.where as Record<string, unknown>),
+      } as WhereOptions,
       ...options,
     });
 
@@ -153,7 +153,7 @@ export abstract class BaseCrudService<
       where: {
         id,
         [this.softDeleteField]: { [Op.ne]: null },
-      },
+      } as WhereOptions,
     });
 
     if (!entity) {
@@ -165,12 +165,12 @@ export abstract class BaseCrudService<
     return entity;
   }
 
-  async count(where: Record<string, unknown> = {}): Promise<number> {
+  async count(where: WhereOptions = {}): Promise<number> {
     return this.model.count({
       where: {
-        ...where,
+        ...(where as Record<string, unknown>),
         [this.softDeleteField]: null,
-      },
+      } as WhereOptions,
     });
   }
 
@@ -179,7 +179,7 @@ export abstract class BaseCrudService<
       where: {
         id,
         [this.softDeleteField]: null,
-      },
+      } as WhereOptions,
     });
     return count > 0;
   }
@@ -189,7 +189,7 @@ export abstract class BaseCrudService<
       where: {
         uuid,
         [this.softDeleteField]: null,
-      },
+      } as WhereOptions,
     });
     return count > 0;
   }

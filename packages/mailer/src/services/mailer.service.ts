@@ -4,14 +4,15 @@ import { Transporter } from 'nodemailer';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { MAILER_OPTIONS } from '../constants';
-import { MailerModuleOptions, SendMailOptions, MailResponse } from '../interfaces';
+import type { MailerModuleOptions } from '../interfaces';
+import type { SendMailOptions, MailResponse } from '../interfaces';
 
 const execAsync = promisify(exec);
 
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
-  private transporter: Transporter;
+  private transporter!: Transporter;
 
   constructor(
     @Inject(MAILER_OPTIONS)

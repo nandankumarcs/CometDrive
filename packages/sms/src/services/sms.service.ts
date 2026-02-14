@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { SMS_OPTIONS } from '../constants';
-import { SendSmsOptions, SmsModuleOptions, SmsResponse } from '../interfaces';
+import type { SendSmsOptions, SmsModuleOptions, SmsResponse } from '../interfaces';
 
 const execAsync = promisify(exec);
 
@@ -128,7 +128,7 @@ export class SmsService {
   <title>SMS Preview - ${messageId}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       min-height: 100vh;
@@ -215,7 +215,7 @@ export class SmsService {
 </head>
 <body>
   <div class="preview-badge">📱 SMS PREVIEW MODE</div>
-  
+
   <div style="text-align: center;">
     <div class="phone-container">
       <div class="phone-screen">
@@ -233,7 +233,7 @@ export class SmsService {
         </div>
       </div>
     </div>
-    
+
     <div class="meta-info">
       <p><strong>Message ID:</strong> ${messageId}</p>
       <p><strong>To:</strong> ${data.to}</p>

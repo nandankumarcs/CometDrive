@@ -41,8 +41,10 @@ export interface MailerModuleOptions {
 
 export interface MailerModuleAsyncOptions {
   isGlobal?: boolean;
-  useFactory: (...args: unknown[]) => Promise<MailerModuleOptions> | MailerModuleOptions;
-  inject?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useFactory: (...args: any[]) => Promise<MailerModuleOptions> | MailerModuleOptions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inject?: any[];
 }
 
 export interface MailResponse {

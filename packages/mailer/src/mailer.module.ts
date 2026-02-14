@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, InjectionToken, Module, Provider } from '@nestjs/common';
 import { MAILER_OPTIONS } from './constants';
 import { MailerModuleAsyncOptions, MailerModuleOptions } from './interfaces';
 import { MailerService } from './services';
@@ -27,7 +27,7 @@ export class MailerModule {
       {
         provide: MAILER_OPTIONS,
         useFactory: options.useFactory,
-        inject: options.inject || [],
+        inject: (options.inject || []) as InjectionToken[],
       },
       MailerService,
     ];

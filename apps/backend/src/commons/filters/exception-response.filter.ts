@@ -17,7 +17,7 @@ export class ExceptionResponseFilter implements ExceptionFilter {
     const status = exception.getStatus();
     const r: HttpExceptionResponseInterface =
       exception.getResponse() as HttpExceptionResponseInterface;
-    let message: string;
+    let message = '';
     if (exception.message) {
       if (typeof r === 'string') {
         message = r;
@@ -31,7 +31,8 @@ export class ExceptionResponseFilter implements ExceptionFilter {
 
     if (!message) {
       if (r && Object.keys(r).includes('errors')) {
-        const firstError = r.errors[Object.keys(r.errors)[0]];
+        const errors = r.errors as Record<string, string>;
+        const firstError = errors[Object.keys(errors)[0]];
         message = firstError;
       }
     }

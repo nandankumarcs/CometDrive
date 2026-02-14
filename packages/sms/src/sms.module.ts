@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, InjectionToken, Module, Provider } from '@nestjs/common';
 import { SMS_OPTIONS } from './constants';
 import { SmsModuleAsyncOptions, SmsModuleOptions } from './interfaces';
 import { SmsService } from './services';
@@ -27,7 +27,7 @@ export class SmsModule {
       {
         provide: SMS_OPTIONS,
         useFactory: options.useFactory,
-        inject: options.inject || [],
+        inject: (options.inject || []) as InjectionToken[],
       },
       SmsService,
     ];

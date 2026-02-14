@@ -1,4 +1,12 @@
-import { Model, FindOptions, CreateOptions, UpdateOptions, DestroyOptions } from 'sequelize';
+import {
+  Model,
+  FindOptions,
+  CreateOptions,
+  UpdateOptions,
+  DestroyOptions,
+  Includeable,
+  WhereOptions,
+} from 'sequelize';
 
 export interface PaginationOptions {
   page?: number;
@@ -20,8 +28,8 @@ export interface PaginatedResult<T> {
 }
 
 export interface FindAllOptions extends PaginationOptions {
-  where?: Record<string, unknown>;
-  include?: unknown[];
+  where?: WhereOptions;
+  include?: Includeable[];
   attributes?: string[];
 }
 
@@ -34,6 +42,6 @@ export interface BaseCrudServiceInterface<T extends Model, CreateDto, UpdateDto>
   delete(id: number, options?: DestroyOptions): Promise<boolean>;
   softDelete?(id: number): Promise<boolean>;
   restore?(id: number): Promise<T>;
-  count(where?: Record<string, unknown>): Promise<number>;
+  count(where?: WhereOptions): Promise<number>;
   exists(id: number): Promise<boolean>;
 }

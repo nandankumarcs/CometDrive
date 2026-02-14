@@ -8,8 +8,10 @@ export interface SmsModuleOptions {
 
 export interface SmsModuleAsyncOptions {
   isGlobal?: boolean;
-  useFactory: (...args: unknown[]) => Promise<SmsModuleOptions> | SmsModuleOptions;
-  inject?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useFactory: (...args: any[]) => Promise<SmsModuleOptions> | SmsModuleOptions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inject?: any[];
 }
 
 export interface SendSmsOptions {

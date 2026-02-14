@@ -90,7 +90,7 @@ export class TokenService implements ITokenService {
       if (typeof decoded === 'string' || decoded === null) {
         return null;
       }
-      return decoded as JwtPayload;
+      return decoded as unknown as JwtPayload;
     } catch {
       return null;
     }
