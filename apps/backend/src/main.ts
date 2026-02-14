@@ -2,8 +2,9 @@
  * This is not a production server yet!
  * This is only a minimal backend to get started.
  */
-import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -17,7 +18,11 @@ import { ExceptionResponseFilter } from './commons/filters';
 import { AllConfigType } from './config/config.type';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Use Pino logger globally
+  app.useLogger(app.get(Logger));
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
   // Adding checks if the req.ip has valid ipv4 otherwiseit checks for
   // x-forwarded-for and if it doesn't exists it will check for connection.remoteAddress
@@ -97,8 +102,9 @@ async function bootstrap() {
   const port = configService.getOrThrow('app.port', { infer: true });
 
   await app.listen(port);
-  Logger.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
-  Logger.log(
+  const logger = app.get(Logger);
+  logger.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
+  logger.log(
     `📚 Swagger documentation available at: http://localhost:${port}/${globalPrefix}/docs`,
   );
 }

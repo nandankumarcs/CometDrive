@@ -12,6 +12,7 @@ import { SmsModule } from '@crownstack/sms';
 import { EmailService } from '@src/commons/services';
 
 // Modules
+import { LoggerModule } from 'nestjs-pino';
 import { AuthModule, JwtAuthGuard, TokenService, SessionService } from './modules/auth';
 import { UserModule } from './modules/user';
 import { OrganizationModule } from './modules/organization';
@@ -33,6 +34,24 @@ import { SessionEntity, UserEntity } from './entities';
     ConfigModule.forRoot({
       load: [appConfig, databaseConfig, authConfig, mailerConfig, smsConfig],
       isGlobal: true,
+    }),
+
+    // Structured Logging (Pino)
+    LoggerModule.forRoot({
+      pinoHttp: {
+        customProps: () => ({
+          context: 'HTTP',
+        }),
+        transport:
+          process.env['NODE_ENV'] !== 'production'
+            ? {
+                target: 'pino-pretty',
+                options: {
+                  singleLine: true,
+                },
+              }
+            : undefined,
+      },
     }),
 
     // Database
