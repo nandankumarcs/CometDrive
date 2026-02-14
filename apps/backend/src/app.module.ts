@@ -3,13 +3,15 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app/app.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import databaseConfig from './database/config/database.config';
-import { authConfig, mailerConfig, smsConfig, appConfig } from './config';
+import { authConfig, mailerConfig, smsConfig, appConfig, redisConfig } from './config';
 import { AllConfigType } from './config/config.type';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeConfigService } from './database/sequelize-config.service';
 import { MailerModule } from '@crownstack/mailer';
 import { SmsModule } from '@crownstack/sms';
 import { EmailService } from '@src/commons/services';
+import { RedisModule } from './redis';
+import { RateLimiterGuard } from '@src/commons/guards';
 
 // Modules
 import { LoggerModule } from 'nestjs-pino';
@@ -32,7 +34,7 @@ import { SessionEntity, UserEntity } from './entities';
   imports: [
     // Configuration
     ConfigModule.forRoot({
-      load: [appConfig, databaseConfig, authConfig, mailerConfig, smsConfig],
+      load: [appConfig, databaseConfig, authConfig, mailerConfig, smsConfig, redisConfig],
       isGlobal: true,
     }),
 
@@ -97,6 +99,9 @@ import { SessionEntity, UserEntity } from './entities';
       inject: [ConfigService],
     }),
 
+    // Redis (Global)
+    RedisModule,
+
     // Feature Modules
     AuthModule,
     UserModule,
@@ -113,6 +118,11 @@ import { SessionEntity, UserEntity } from './entities';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Global Rate Limiter Guard - 100 req/min per IP
+    {
+      provide: APP_GUARD,
+      useClass: RateLimiterGuard,
     },
   ],
   exports: [EmailService],
