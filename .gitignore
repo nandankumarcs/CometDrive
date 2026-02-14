@@ -50,3 +50,6 @@ test-output
 
 # Environment variables
 .env
+# Verification scripts
+verify-*.ts
+verify-tsconfig.json
