@@ -13,7 +13,7 @@ const nextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:3001/api/:path*', // Proxy to Backend
+        destination: 'http://localhost:3001/api/v1/:path*', // Proxy to Backend (URI versioning)
       },
     ];
   },
