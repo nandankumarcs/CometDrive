@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { PasswordService, TokenService, SessionService } from './services';
 import { JwtAuthGuard, RolesGuard } from './guards';
 import { EmailService } from '@src/commons/services';
+import { InvitationModule } from '../invitation/invitation.module';
 import {
   UserEntity,
   UserTypeEntity,
@@ -30,6 +31,7 @@ import {
       SessionEntity,
       PasswordResetEntity,
     ]),
+    InvitationModule,
   ],
   controllers: [AuthController],
   providers: [

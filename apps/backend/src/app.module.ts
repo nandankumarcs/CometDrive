@@ -21,6 +21,7 @@ import { AuthModule, JwtAuthGuard, TokenService, SessionService } from './module
 import { UserModule } from './modules/user';
 import { OrganizationModule } from './modules/organization';
 import { UserTypeModule } from './modules/user-type';
+import { InvitationModule } from './modules/invitation/invitation.module';
 
 // Entities for guards
 import { SequelizeModule as SequelizeFeatureModule } from '@nestjs/sequelize';
@@ -109,6 +110,7 @@ import { SessionEntity, UserEntity } from './entities';
     UserModule,
     OrganizationModule,
     UserTypeModule,
+    InvitationModule,
   ],
   controllers: [AppController],
   providers: [

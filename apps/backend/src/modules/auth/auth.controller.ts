@@ -13,12 +13,12 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
-  RegisterDto,
   LoginDto,
   RefreshTokenDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
+  RegisterWithTokenDto,
 } from './dtos';
 import { Public, CurrentUser } from './decorators';
 import * as AuthInterfaces from './interfaces';
@@ -29,17 +29,32 @@ import { SuccessResponse } from '@src/commons/dtos';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // @Public()
+  // @Post('register')
+  // @ApiOperation({ summary: 'Register a new user (Public)' })
+  // @ApiResponse({ status: 201, description: 'User registered successfully' })
+  // @ApiResponse({ status: 409, description: 'Email already registered' })
+  // async register(
+  //   @Body() dto: RegisterDto,
+  //   @Ip() ipAddress: string,
+  //   @Headers('user-agent') userAgent: string,
+  // ) {
+  //   const result = await this.authService.register(dto, ipAddress, userAgent);
+  //   return new SuccessResponse('Registration successful', result);
+  // }
+
   @Public()
-  @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @Post('register-with-token')
+  @ApiOperation({ summary: 'Register a new user with invitation token' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(
-    @Body() dto: RegisterDto,
+  @ApiResponse({ status: 404, description: 'Invalid token' })
+  async registerWithToken(
+    @Body() dto: RegisterWithTokenDto,
     @Ip() ipAddress: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const result = await this.authService.register(dto, ipAddress, userAgent);
+    const result = await this.authService.registerWithToken(dto, ipAddress, userAgent);
     return new SuccessResponse('Registration successful', result);
   }
 

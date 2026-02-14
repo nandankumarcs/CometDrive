@@ -4,3 +4,4 @@ export * from './refresh-token.dto';
 export * from './forgot-password.dto';
 export * from './reset-password.dto';
 export * from './change-password.dto';
+export * from './register-with-token.dto';

@@ -16,9 +16,11 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
+  RegisterWithTokenDto,
 } from './dtos';
 import { JwtTokens } from './interfaces';
 import { PasswordService, TokenService, SessionService } from './services';
+import { InvitationService } from '../invitation/invitation.service';
 
 /**
  * Auth Service - Orchestrator
@@ -44,6 +46,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
     private readonly emailService: EmailService,
+    private readonly invitationService: InvitationService,
     @InjectModel(UserEntity)
     private readonly userModel: typeof UserEntity,
     @InjectModel(UserTypeEntity)
@@ -97,6 +100,60 @@ export class AuthService {
     this.emailService.sendWelcomeEmail(user.email, { name: user.first_name }).catch(console.error);
 
     // Create session and generate tokens
+    const tokens = await this.createSessionAndTokens(user, ipAddress, userAgent);
+
+    // Fetch user with relations
+    const userWithRelations = await this.userModel.findByPk(user.id, {
+      include: [UserTypeEntity, OrganizationEntity],
+      attributes: { exclude: ['password'] },
+    });
+
+    return { user: userWithRelations, ...tokens };
+  }
+
+  async registerWithToken(dto: RegisterWithTokenDto, ipAddress?: string, userAgent?: string) {
+    // Validate invitation token
+    const invitation = await this.invitationService.validateToken(dto.token);
+
+    // Check if email is already registered
+    const existingUser = await this.userModel.findOne({
+      where: { email: invitation.email.toLowerCase(), deleted_at: null },
+    });
+
+    if (existingUser) {
+      // Logic decision: If user exists, maybe we should just accept invitation and link?
+      // But for now, let's treat it as conflict if they try to "register".
+      // They should login and accept invite? Or maybe invitation is for NEW users only?
+      // "Invitation-based signups" usually means new user.
+      throw new ConflictException('Email already registered. Please login instead.');
+    }
+
+    // Get organization from inviter
+    const inviter = await this.userModel.findByPk(invitation.invited_by);
+    if (!inviter) {
+      throw new NotFoundException('Inviter organization not found');
+    }
+    const organizationId = inviter.organization_id;
+
+    // Create user
+    const hashedPassword = await this.passwordService.hash(dto.password);
+    const user = await this.userModel.create({
+      first_name: dto.firstName,
+      last_name: dto.lastName,
+      email: invitation.email.toLowerCase(),
+      phone: null,
+      password: hashedPassword,
+      organization_id: organizationId,
+      user_type_id: invitation.user_type_id,
+    });
+
+    // Mark invitation as accepted
+    await this.invitationService.accept(dto.token);
+
+    // Send welcome email
+    this.emailService.sendWelcomeEmail(user.email, { name: user.first_name }).catch(console.error);
+
+    // Create session
     const tokens = await this.createSessionAndTokens(user, ipAddress, userAgent);
 
     // Fetch user with relations
