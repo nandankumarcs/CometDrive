@@ -1,0 +1,12 @@
+node_modules
+dist
+.nx
+.git
+.vscode
+.github
+*.log
+.env
+uploads
+test-output
+tmp
+coverage

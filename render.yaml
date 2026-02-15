@@ -1,0 +1,53 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: comet-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx nx build backend --prod
+    startCommand: node apps/backend/dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Existing Aiven DB
+      - key: DATABASE_HOST
+        value: pg-317646e9-crownstack-8298.e.aivencloud.com
+      - key: DATABASE_PORT
+        value: "19368"
+      - key: DATABASE_NAME
+        value: defaultdb
+      - key: DATABASE_USERNAME
+        value: avnadmin
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_SSL_ENABLED
+        value: "true"
+      - key: DATABASE_REJECT_UNAUTHORIZED
+        value: "false"
+      # Redis Cloud
+      - key: REDIS_HOST
+        value: redis-11813.c89.us-east-1-3.ec2.cloud.redislabs.com
+      - key: REDIS_PORT
+        value: "11813"
+      - key: REDIS_PASSWORD
+        value: 747U0jA92v8xaUBcTykaVobpY4FEPFpZ
+      - key: JWT_SECRET
+        generateValue: true
+
+  # Frontend Web Service
+  - type: web
+    name: comet-frontend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx nx build frontend --prod
+    startCommand: npx nx start frontend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: comet-backend
+          property: host

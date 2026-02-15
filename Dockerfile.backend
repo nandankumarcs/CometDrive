@@ -1,0 +1,44 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Install dependencies first (for better caching)
+COPY package*.json ./
+COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
+COPY packages/mailer/package*.json ./packages/mailer/
+COPY packages/sms/package*.json ./packages/sms/
+
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the backend
+RUN npx nx build backend
+
+# Production stage
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+# Copy production dependencies
+COPY package.json package-lock.json ./
+RUN npm install --omit=dev
+
+# Copy build output from builder stage
+COPY --from=builder /app/apps/backend/dist ./dist
+
+# Copy migrations and seeders for database management
+COPY apps/backend/src/database ./src/database
+COPY apps/backend/.sequelizerc ./
+
+# Expose backend port
+EXPOSE 3001
+
+# Start the application
+CMD ["node", "dist/main.js"]
