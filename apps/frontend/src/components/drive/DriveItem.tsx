@@ -9,6 +9,7 @@ import {
   Download,
   RotateCcw,
   XCircle,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { FileIcon } from './FileIcon';
 import { useDriveStore, type ItemType } from '../../store/drive.store';
@@ -82,6 +83,11 @@ export function DriveItem({
     openModal('rename', { uuid, name, type });
   };
 
+  const handleShare = () => {
+    setMenuOpen(false);
+    openModal('share', { uuid, name, type });
+  };
+
   const handleConfirmDelete = () => {
     setMenuOpen(false);
     openModal('delete', { uuid, name, type });
@@ -123,6 +129,7 @@ export function DriveItem({
                 onRestore,
                 handleConfirmDelete,
                 onDownload,
+                handleShare,
               }}
             />
           )}
@@ -213,6 +220,7 @@ export function DriveItem({
               onRestore,
               handleConfirmDelete,
               onDownload,
+              handleShare,
             }}
           />
         )}
@@ -230,6 +238,7 @@ function ContextMenu({
   onRestore,
   handleConfirmDelete,
   onDownload,
+  handleShare,
 }: {
   isTrashed?: boolean;
   type: ItemType;
@@ -238,6 +247,7 @@ function ContextMenu({
   onRestore?: () => void;
   handleConfirmDelete: () => void;
   onDownload?: () => void;
+  handleShare: () => void;
 }) {
   const cls = 'flex items-center w-full px-3 py-2 text-sm text-left transition-colors';
   return (
@@ -285,6 +295,17 @@ function ContextMenu({
               className={`${cls} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700`}
             >
               <Download className="h-4 w-4 mr-2" /> Download
+            </button>
+          )}
+          {type === 'file' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+              className={`${cls} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700`}
+            >
+              <LinkIcon className="h-4 w-4 mr-2" /> Share
             </button>
           )}
           <div className="border-t border-gray-100 dark:border-gray-700 my-1" />

@@ -12,6 +12,7 @@ import { EmptyState } from '../../../components/drive/EmptyState';
 import { NewFolderModal } from '../../../components/drive/NewFolderModal';
 import { RenameModal } from '../../../components/drive/RenameModal';
 import { DeleteConfirmModal } from '../../../components/drive/DeleteConfirmModal';
+import { ShareModal } from '../../../components/drive/ShareModal';
 import { UploadDropzone, triggerUpload } from '../../../components/drive/UploadDropzone';
 
 export default function DrivePage() {
@@ -121,6 +122,7 @@ export default function DrivePage() {
       <NewFolderModal />
       <RenameModal />
       <DeleteConfirmModal />
+      <ShareModal />
       <UploadDropzone />
     </div>
   );

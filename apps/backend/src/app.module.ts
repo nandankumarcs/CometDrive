@@ -23,6 +23,7 @@ import { InvitationModule } from './modules/invitation/invitation.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { FolderModule } from './modules/folder/folder.module';
 import { FileModule } from './modules/file/file.module';
+import { ShareModule } from './modules/share/share.module';
 
 // Entities for guards
 import { SequelizeModule as SequelizeFeatureModule } from '@nestjs/sequelize';
@@ -123,6 +124,7 @@ import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
     InvitationModule,
     FolderModule,
     FileModule,
+    ShareModule,
   ],
   controllers: [AppController],
   providers: [

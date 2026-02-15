@@ -2,6 +2,7 @@ export * from './base.entity';
 export * from './organization.entity';
 export * from './user-type.entity';
 export * from './user.entity';
+export * from './share.entity';
 export * from './session.entity';
 export * from './password-reset.entity';
 export * from './audit-log.entity';

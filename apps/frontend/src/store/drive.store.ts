@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 export type ViewMode = 'grid' | 'list';
-export type ModalType = 'newFolder' | 'rename' | 'delete' | 'upload' | null;
+export type ModalType = 'newFolder' | 'rename' | 'delete' | 'share' | 'upload' | null;
 export type ItemType = 'file' | 'folder';
 
 export interface BreadcrumbItem {
