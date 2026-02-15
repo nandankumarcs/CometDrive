@@ -16,6 +16,14 @@ export interface ContextItem {
   type: 'file' | 'folder';
 }
 
+export interface UploadItem {
+  id: string;
+  name: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'completed' | 'error';
+  error?: string;
+}
+
 interface DriveState {
   currentFolderUuid: string | null;
   viewMode: ViewMode;
@@ -25,6 +33,10 @@ interface DriveState {
   activeModal: ModalType;
   contextItem: ContextItem | null;
   previewItem: { uuid: string; name: string; mimeType: string } | null;
+  isSidebarOpen: boolean; // Added from instruction
+
+  // Uploads
+  uploads: Record<string, UploadItem>;
 
   setCurrentFolder: (uuid: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
@@ -39,6 +51,13 @@ interface DriveState {
   closeModal: () => void;
   openPreview: (item: { uuid: string; name: string; mimeType: string }) => void;
   closePreview: () => void;
+
+  // Upload Actions
+  addUpload: (id: string, name: string) => void;
+  updateUploadProgress: (id: string, progress: number) => void;
+  completeUpload: (id: string) => void;
+  failUpload: (id: string, error?: string) => void;
+  clearCompletedUploads: () => void;
 }
 
 export const useDriveStore = create<DriveState>()(
@@ -52,6 +71,8 @@ export const useDriveStore = create<DriveState>()(
       activeModal: null,
       contextItem: null,
       previewItem: null,
+      isSidebarOpen: true, // Added from instruction
+      uploads: {},
 
       setCurrentFolder: (uuid) => set({ currentFolderUuid: uuid, selectedItems: [] }),
       setViewMode: (mode) => set({ viewMode: mode }),
@@ -83,6 +104,45 @@ export const useDriveStore = create<DriveState>()(
       closeModal: () => set({ activeModal: null, contextItem: null }),
       openPreview: (item) => set({ previewItem: item }),
       closePreview: () => set({ previewItem: null }),
+
+      addUpload: (id, name) =>
+        set((state) => ({
+          uploads: {
+            ...state.uploads,
+            [id]: { id, name, progress: 0, status: 'pending' },
+          },
+        })),
+      updateUploadProgress: (id, progress) =>
+        set((state) => ({
+          uploads: {
+            ...state.uploads,
+            [id]: { ...state.uploads[id], progress, status: 'uploading' },
+          },
+        })),
+      completeUpload: (id) =>
+        set((state) => ({
+          uploads: {
+            ...state.uploads,
+            [id]: { ...state.uploads[id], progress: 100, status: 'completed' },
+          },
+        })),
+      failUpload: (id, error) =>
+        set((state) => ({
+          uploads: {
+            ...state.uploads,
+            [id]: { ...state.uploads[id], status: 'error', error },
+          },
+        })),
+      clearCompletedUploads: () =>
+        set((state) => {
+          const newUploads = { ...state.uploads };
+          Object.keys(newUploads).forEach((key) => {
+            if (newUploads[key].status === 'completed') {
+              delete newUploads[key];
+            }
+          });
+          return { uploads: newUploads };
+        }),
     }),
     { name: 'DriveStore' },
   ),

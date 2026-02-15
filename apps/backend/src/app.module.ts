@@ -61,10 +61,18 @@ import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
         transport:
           process.env['NODE_ENV'] !== 'production'
             ? {
-                target: 'pino-pretty',
-                options: {
-                  singleLine: true,
-                },
+                targets: [
+                  {
+                    target: 'pino-pretty',
+                    options: {
+                      singleLine: true,
+                    },
+                  },
+                  {
+                    target: 'pino/file',
+                    options: { destination: './logs/app.log', mkdir: true },
+                  },
+                ],
               }
             : undefined,
       },

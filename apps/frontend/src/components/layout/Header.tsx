@@ -67,7 +67,7 @@ export function Header() {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-full"
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-medium shadow-md">
+            <div className="h-8 w-8 rounded-full bg-linear-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-medium shadow-md">
               {user?.first_name?.[0]?.toUpperCase() || 'U'}
             </div>
           </button>

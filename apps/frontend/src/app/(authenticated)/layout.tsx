@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Header } from '../../components/layout/Header';
 import { FilePreviewModal } from '../../components/drive/FilePreviewModal';
+import { UploadProgressWidget } from '../../components/drive/UploadProgressWidget';
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -35,10 +36,11 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <Sidebar />
-      <main className="ml-64 pt-16 min-h-screen">
-        <div className="p-6">{children}</div>
+      <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white relative pt-16 ml-64 h-screen">
+        {children}
+        <FilePreviewModal />
+        <UploadProgressWidget />
       </main>
-      <FilePreviewModal />
     </div>
   );
 }

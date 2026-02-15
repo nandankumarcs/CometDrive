@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { useDriveStore } from '../store/drive.store';
 
 export interface FileItem {
   id: number;
@@ -31,15 +32,34 @@ export function useFiles(folderUuid?: string | null, isTrashed = false) {
 
 export function useUploadFile() {
   const qc = useQueryClient();
+  const { addUpload, updateUploadProgress, completeUpload, failUpload } = useDriveStore();
+
   return useMutation({
     mutationFn: async ({ file, folderUuid }: { file: File; folderUuid?: string }) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      if (folderUuid) formData.append('folderUuid', folderUuid);
-      const res = await api.post('/files/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return res.data.data;
+      const uploadId = Math.random().toString(36).substring(7);
+      addUpload(uploadId, file.name);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (folderUuid) formData.append('folderUuid', folderUuid);
+
+        const res = await api.post('/files/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              updateUploadProgress(uploadId, progress);
+            }
+          },
+        });
+
+        completeUpload(uploadId);
+        return res.data.data;
+      } catch (error: any) {
+        failUpload(uploadId, error.message || 'Upload failed');
+        throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
   });
