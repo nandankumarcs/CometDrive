@@ -86,6 +86,16 @@ export function useDeleteFilePermanent() {
   });
 }
 
+export function useEmptyTrashFiles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete('/files/trash/empty');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+  });
+}
+
 export function useDownloadFile() {
   return useMutation({
     mutationFn: async (uuid: string) => {

@@ -95,7 +95,7 @@ export default function DrivePage() {
               name={folder.name}
               type="folder"
               updatedAt={folder.updated_at}
-              isSelected={selectedItems.includes(folder.uuid)}
+              isSelected={selectedItems.some((i) => i.uuid === folder.uuid)}
               onNavigate={() => navigateToFolder(folder.uuid, folder.name)}
               onTrash={() => trashFolder.mutate(folder.uuid)}
             />
@@ -110,7 +110,7 @@ export default function DrivePage() {
               mimeType={file.mime_type}
               size={file.size}
               updatedAt={file.updated_at}
-              isSelected={selectedItems.includes(file.uuid)}
+              isSelected={selectedItems.some((i) => i.uuid === file.uuid)}
               onTrash={() => trashFile.mutate(file.uuid)}
               onDownload={() => handleDownload(file.uuid, file.name)}
             />

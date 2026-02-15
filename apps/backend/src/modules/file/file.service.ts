@@ -215,6 +215,47 @@ export class FileService {
     return { success: true };
   }
 
+  async emptyTrash(user: UserEntity) {
+    const trashedFiles = await this.fileModel.findAll({
+      where: { user_id: user.id },
+      paranoid: false,
+    });
+
+    const itemsToDelete = trashedFiles.filter((f) => f.deleted_at !== null);
+
+    if (itemsToDelete.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    let totalSize = 0;
+    for (const file of itemsToDelete) {
+      try {
+        await this.storageService.delete(file.storage_path);
+        totalSize += file.size;
+        await file.destroy({ force: true });
+      } catch (e: any) {
+        this.logger.error(`Failed to delete file ${file.uuid} from storage: ${e.message}`);
+        // Continue with others
+      }
+    }
+
+    // Update storage usage
+    const organization = await this.organizationModel.findByPk(user.organization_id);
+    if (organization && totalSize > 0) {
+      await organization.decrement('storage_used', { by: totalSize });
+    }
+
+    await this.auditService.log(
+      'FILE_EMPTY_TRASH',
+      user,
+      { count: itemsToDelete.length },
+      undefined,
+      'file',
+    );
+
+    return { success: true, count: itemsToDelete.length };
+  }
+
   async getDownloadStream(uuid: string, user: UserEntity) {
     const file = await this.findOne(uuid, user);
     return this.storageService.download(file.storage_path);

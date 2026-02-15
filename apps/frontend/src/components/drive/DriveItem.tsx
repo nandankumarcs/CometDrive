@@ -103,7 +103,7 @@ export function DriveItem({
             : 'border-transparent bg-white dark:bg-gray-800/60 hover:border-gray-200 dark:hover:border-gray-700'
         }`}
         onDoubleClick={handleDoubleClick}
-        onClick={() => toggleSelectItem(uuid)}
+        onClick={() => toggleSelectItem({ uuid, name, type })}
       >
         {/* Action menu */}
         <div
@@ -167,7 +167,7 @@ export function DriveItem({
           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
       }`}
       onDoubleClick={handleDoubleClick}
-      onClick={() => toggleSelectItem(uuid)}
+      onClick={() => toggleSelectItem({ uuid, name, type })}
     >
       {/* Icon */}
       <div className="flex-shrink-0 mr-3">

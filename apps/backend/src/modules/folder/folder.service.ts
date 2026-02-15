@@ -154,4 +154,31 @@ export class FolderService {
 
     return { success: true };
   }
+
+  async emptyTrash(user: UserEntity) {
+    const trashedFolders = await this.folderModel.findAll({
+      where: { user_id: user.id },
+      paranoid: false,
+    });
+
+    const itemsToDelete = trashedFolders.filter((f) => f.deleted_at !== null);
+
+    if (itemsToDelete.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    for (const folder of itemsToDelete) {
+      await folder.destroy({ force: true });
+    }
+
+    await this.auditService.log(
+      'FOLDER_EMPTY_TRASH',
+      user,
+      { count: itemsToDelete.length },
+      undefined,
+      'folder',
+    );
+
+    return { success: true, count: itemsToDelete.length };
+  }
 }

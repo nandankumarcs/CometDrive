@@ -82,4 +82,11 @@ export class FolderController {
     const result = await this.folderService.deletePermanently(uuid, req.user);
     return new SuccessResponse('Folder deleted permanently', result);
   }
+
+  @Delete('trash/empty')
+  @ApiOperation({ summary: 'Empty trash (delete all trashed folders)' })
+  async emptyTrash(@Request() req: any) {
+    const result = await this.folderService.emptyTrash(req.user);
+    return new SuccessResponse('Trash emptied successfully', result);
+  }
 }

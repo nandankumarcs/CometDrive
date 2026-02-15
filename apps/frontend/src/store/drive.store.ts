@@ -19,7 +19,7 @@ export interface ContextItem {
 interface DriveState {
   currentFolderUuid: string | null;
   viewMode: ViewMode;
-  selectedItems: string[];
+  selectedItems: ContextItem[];
   searchQuery: string;
   breadcrumbs: BreadcrumbItem[];
   activeModal: ModalType;
@@ -27,8 +27,8 @@ interface DriveState {
 
   setCurrentFolder: (uuid: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
-  toggleSelectItem: (uuid: string) => void;
-  selectAll: (uuids: string[]) => void;
+  toggleSelectItem: (item: ContextItem) => void;
+  selectAll: (items: ContextItem[]) => void;
   clearSelection: () => void;
   setSearchQuery: (query: string) => void;
   navigateToFolder: (uuid: string | null, name: string) => void;
@@ -51,13 +51,13 @@ export const useDriveStore = create<DriveState>()(
 
       setCurrentFolder: (uuid) => set({ currentFolderUuid: uuid, selectedItems: [] }),
       setViewMode: (mode) => set({ viewMode: mode }),
-      toggleSelectItem: (uuid) =>
+      toggleSelectItem: (item) =>
         set((state) => ({
-          selectedItems: state.selectedItems.includes(uuid)
-            ? state.selectedItems.filter((id) => id !== uuid)
-            : [...state.selectedItems, uuid],
+          selectedItems: state.selectedItems.some((i) => i.uuid === item.uuid)
+            ? state.selectedItems.filter((i) => i.uuid !== item.uuid)
+            : [...state.selectedItems, item],
         })),
-      selectAll: (uuids) => set({ selectedItems: uuids }),
+      selectAll: (items) => set({ selectedItems: items }),
       clearSelection: () => set({ selectedItems: [] }),
       setSearchQuery: (query) => set({ searchQuery: query }),
 

@@ -1,8 +1,10 @@
 'use client';
 
-import { ChevronRight, LayoutGrid, List, FolderPlus, Upload } from 'lucide-react';
+import { ChevronRight, LayoutGrid, List, FolderPlus, Upload, Trash2, X } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useTrashFile } from '../../hooks/use-files';
+import { useTrashFolder } from '../../hooks/use-folders';
 
 interface DriveToolbarProps {
   onUpload?: () => void;
@@ -10,7 +12,36 @@ interface DriveToolbarProps {
 
 export function DriveToolbar({ onUpload }: DriveToolbarProps) {
   const store = useDriveStore();
-  const { breadcrumbs = [], navigateToBreadcrumb, viewMode, setViewMode, openModal } = store;
+  const {
+    breadcrumbs = [],
+    navigateToBreadcrumb,
+    viewMode,
+    setViewMode,
+    openModal,
+    selectedItems,
+    clearSelection,
+  } = store;
+
+  const trashFile = useTrashFile();
+  const trashFolder = useTrashFolder();
+  const [isTrashing, setIsTrashing] = useState(false);
+
+  const handleBulkTrash = async () => {
+    if (selectedItems.length === 0) return;
+    setIsTrashing(true);
+    try {
+      await Promise.all(
+        selectedItems.map((item) =>
+          item.type === 'file'
+            ? trashFile.mutateAsync(item.uuid)
+            : trashFolder.mutateAsync(item.uuid),
+        ),
+      );
+      clearSelection();
+    } finally {
+      setIsTrashing(false);
+    }
+  };
 
   useEffect(() => {
     console.log('DriveToolbar mounted. Store state:', store);
@@ -52,6 +83,32 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
         >
           <Upload className="h-3.5 w-3.5" /> Upload
         </button>
+
+        {selectedItems.length > 0 && (
+          <>
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+            <div className="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-900/20 animate-in fade-in zoom-in duration-200">
+              <span className="text-xs font-medium text-primary-700 dark:text-primary-400 px-1">
+                {selectedItems.length} selected
+              </span>
+              <button
+                onClick={handleBulkTrash}
+                disabled={isTrashing}
+                className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50"
+                title="Move to Trash"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={clearSelection}
+                className="p-1.5 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                title="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 

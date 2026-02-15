@@ -110,6 +110,13 @@ export class FileController {
     return new SuccessResponse('File deleted permanently', result);
   }
 
+  @Delete('trash/empty')
+  @ApiOperation({ summary: 'Empty trash (delete all trashed files)' })
+  async emptyTrash(@Request() req: any) {
+    const result = await this.fileService.emptyTrash(req.user);
+    return new SuccessResponse('Trash emptied successfully', result);
+  }
+
   @Get(':uuid/download')
   @ApiOperation({ summary: 'Download file' })
   async download(@Param('uuid') uuid: string, @Request() req: any, @Res() res: Response) {

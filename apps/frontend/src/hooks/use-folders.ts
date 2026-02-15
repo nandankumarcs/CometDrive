@@ -89,3 +89,13 @@ export function useDeleteFolderPermanent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
 }
+
+export function useEmptyTrashFolders() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete('/folders/trash/empty');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
+  });
+}
