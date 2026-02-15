@@ -131,6 +131,20 @@ export class FileController {
     stream.pipe(res);
   }
 
+  @Get(':uuid/content')
+  @ApiOperation({ summary: 'View file content (inline)' })
+  async content(@Param('uuid') uuid: string, @Request() req: any, @Res() res: Response) {
+    const file = await this.fileService.findOne(uuid, req.user);
+    const stream = await this.fileService.getDownloadStream(uuid, req.user);
+
+    res.set({
+      'Content-Type': file.mime_type,
+      'Content-Disposition': `inline; filename="${file.name}"`,
+    });
+
+    stream.pipe(res);
+  }
+
   @Get(':uuid/signed-url')
   @ApiOperation({ summary: 'Get signed URL for file' })
   async getSignedUrl(@Param('uuid') uuid: string, @Request() req: any) {

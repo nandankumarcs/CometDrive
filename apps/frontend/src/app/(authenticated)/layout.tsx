@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/auth.store';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Header } from '../../components/layout/Header';
+import { FilePreviewModal } from '../../components/drive/FilePreviewModal';
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -37,6 +38,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       <main className="ml-64 pt-16 min-h-screen">
         <div className="p-6">{children}</div>
       </main>
+      <FilePreviewModal />
     </div>
   );
 }

@@ -263,6 +263,9 @@ export class FileService {
 
   async getSignedUrl(uuid: string, user: UserEntity) {
     const file = await this.findOne(uuid, user);
+    if (this.storageService.getDriver() === 'local') {
+      return `/api/v1/files/${file.uuid}/content`;
+    }
     return this.storageService.getSignedUrl(file.storage_path);
   }
 }

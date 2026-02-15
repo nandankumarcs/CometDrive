@@ -10,6 +10,7 @@ import {
   RotateCcw,
   XCircle,
   Link as LinkIcon,
+  FileText,
 } from 'lucide-react';
 import { FileIcon } from './FileIcon';
 import { useDriveStore, type ItemType } from '../../store/drive.store';
@@ -28,6 +29,7 @@ interface DriveItemProps {
   onRestore?: () => void;
   onDeletePermanent?: () => void;
   onDownload?: () => void;
+  onPreview?: () => void;
 }
 
 function formatSize(bytes: number): string {
@@ -60,8 +62,9 @@ export function DriveItem({
   onRestore,
   onDeletePermanent,
   onDownload,
+  onPreview,
 }: DriveItemProps) {
-  const { viewMode, toggleSelectItem, openModal } = useDriveStore();
+  const { viewMode, toggleSelectItem, openModal, openPreview } = useDriveStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +78,22 @@ export function DriveItem({
 
   const handleDoubleClick = () => {
     if (type === 'folder' && onNavigate) onNavigate();
-    else if (type === 'file' && onDownload) onDownload();
+    else if (type === 'file') {
+      // Check if previewable
+      const isPreviewable =
+        mimeType?.startsWith('image/') ||
+        mimeType?.startsWith('video/') ||
+        mimeType?.startsWith('audio/') ||
+        mimeType === 'application/pdf' ||
+        mimeType?.startsWith('text/') ||
+        mimeType === 'application/json';
+
+      if (isPreviewable) {
+        openPreview({ uuid, name, mimeType: mimeType || 'application/octet-stream' });
+      } else if (onDownload) {
+        onDownload();
+      }
+    }
   };
 
   const handleRename = () => {
@@ -129,6 +147,15 @@ export function DriveItem({
                 onRestore,
                 handleConfirmDelete,
                 onDownload,
+                onPreview:
+                  type === 'file'
+                    ? () =>
+                        openPreview({
+                          uuid,
+                          name,
+                          mimeType: mimeType || 'application/octet-stream',
+                        })
+                    : undefined,
                 handleShare,
               }}
             />
@@ -220,6 +247,11 @@ export function DriveItem({
               onRestore,
               handleConfirmDelete,
               onDownload,
+              onPreview:
+                type === 'file'
+                  ? () =>
+                      openPreview({ uuid, name, mimeType: mimeType || 'application/octet-stream' })
+                  : undefined,
               handleShare,
             }}
           />
@@ -238,6 +270,7 @@ function ContextMenu({
   onRestore,
   handleConfirmDelete,
   onDownload,
+  onPreview,
   handleShare,
 }: {
   isTrashed?: boolean;
@@ -247,6 +280,7 @@ function ContextMenu({
   onRestore?: () => void;
   handleConfirmDelete: () => void;
   onDownload?: () => void;
+  onPreview?: () => void;
   handleShare: () => void;
 }) {
   const cls = 'flex items-center w-full px-3 py-2 text-sm text-left transition-colors';
@@ -286,6 +320,17 @@ function ContextMenu({
           >
             <Pencil className="h-4 w-4 mr-2" /> Rename
           </button>
+          {onPreview && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview();
+              }}
+              className={`${cls} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700`}
+            >
+              <FileText className="h-4 w-4 mr-2" /> Preview
+            </button>
+          )}
           {type === 'file' && onDownload && (
             <button
               onClick={(e) => {

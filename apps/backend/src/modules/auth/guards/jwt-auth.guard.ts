@@ -35,7 +35,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException('Access token is required');
@@ -73,9 +73,21 @@ export class JwtAuthGuard implements CanActivate {
     ]);
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+  private extractToken(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    if (type === 'Bearer') {
+      return token;
+    }
+
+    if (request.query && request.query.token) {
+      return request.query.token as string;
+    }
+
+    if (request.query && request.query.access_token) {
+      return request.query.access_token as string;
+    }
+
+    return undefined;
   }
 
   private async findValidUser(userId: number): Promise<UserEntity> {

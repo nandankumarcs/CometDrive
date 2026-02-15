@@ -24,6 +24,7 @@ interface DriveState {
   breadcrumbs: BreadcrumbItem[];
   activeModal: ModalType;
   contextItem: ContextItem | null;
+  previewItem: { uuid: string; name: string; mimeType: string } | null;
 
   setCurrentFolder: (uuid: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
@@ -36,6 +37,8 @@ interface DriveState {
   resetBreadcrumbs: () => void;
   openModal: (modal: ModalType, item?: ContextItem) => void;
   closeModal: () => void;
+  openPreview: (item: { uuid: string; name: string; mimeType: string }) => void;
+  closePreview: () => void;
 }
 
 export const useDriveStore = create<DriveState>()(
@@ -48,6 +51,7 @@ export const useDriveStore = create<DriveState>()(
       breadcrumbs: [{ uuid: null, name: 'My Drive' }],
       activeModal: null,
       contextItem: null,
+      previewItem: null,
 
       setCurrentFolder: (uuid) => set({ currentFolderUuid: uuid, selectedItems: [] }),
       setViewMode: (mode) => set({ viewMode: mode }),
@@ -77,6 +81,8 @@ export const useDriveStore = create<DriveState>()(
         set({ breadcrumbs: [{ uuid: null, name: 'My Drive' }], currentFolderUuid: null }),
       openModal: (modal, item) => set({ activeModal: modal, contextItem: item || null }),
       closeModal: () => set({ activeModal: null, contextItem: null }),
+      openPreview: (item) => set({ previewItem: item }),
+      closePreview: () => set({ previewItem: null }),
     }),
     { name: 'DriveStore' },
   ),
