@@ -18,5 +18,6 @@ module.exports = {
   coverageDirectory: 'test-output/jest/coverage',
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    '^nanoid$': '<rootDir>/__mocks__/nanoid.js',
   },
 };

@@ -3,11 +3,13 @@ import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 
 @Injectable()
 export class FileService {
+  private readonly logger = new Logger(FileService.name);
+
   constructor(
     @InjectModel(FileEntity)
     private readonly fileModel: typeof FileEntity,
@@ -23,61 +25,69 @@ export class FileService {
     const { folderUuid } = createFileDto;
     let folderId: number | null = null;
 
-    if (folderUuid) {
-      const folder = await this.folderModel.findOne({
-        where: { uuid: folderUuid, user_id: user.id },
-      });
-      if (!folder) {
-        throw new NotFoundException('Folder not found');
+    try {
+      if (folderUuid) {
+        const folder = await this.folderModel.findOne({
+          where: { uuid: folderUuid, user_id: user.id },
+        });
+
+        if (!folder) {
+          throw new NotFoundException('Folder not found');
+        }
+        folderId = folder.id;
       }
-      folderId = folder.id;
+
+      const timestamp = Date.now();
+      const storagePath = `users/${user.uuid}/${folderUuid || 'root'}/${timestamp}-${
+        file.originalname
+      }`;
+
+      // Check storage quota
+      const orgId = (user as any).organizationId || user.organization_id;
+      const organization = await this.organizationModel.findByPk(orgId);
+      if (!organization) {
+        throw new NotFoundException('Organization not found');
+      }
+
+      const fileSize = parseInt(file.size, 10);
+      const currentUsage = parseInt(organization.storage_used as any, 10);
+      const maxStorage = parseInt(organization.max_storage as any, 10);
+
+      if (currentUsage + fileSize > maxStorage) {
+        throw new ForbiddenException('Storage usage quota exceeded for this organization.');
+      }
+
+      await this.storageService.upload(file, storagePath);
+
+      // Update storage usage
+      await organization.increment('storage_used', { by: fileSize });
+
+      const fileRecord = await this.fileModel.create({
+        name: file.originalname,
+        original_name: file.originalname,
+        size: file.size,
+        mime_type: file.mimetype,
+        storage_path: storagePath,
+        storage_provider: this.storageService.getDriver(),
+        storage_bucket: this.storageService.getBucket(),
+        user_id: user.id,
+        folder_id: folderId,
+      });
+
+      await this.auditService.log(
+        'FILE_UPLOAD',
+        user,
+        { name: file.originalname, folderUuid, storagePath },
+        fileRecord.id,
+        'file',
+      );
+
+      return fileRecord;
+    } catch (e) {
+      const err = e as Error;
+      this.logger.error(`Upload error: ${err.message}`, err.stack);
+      throw e;
     }
-
-    const timestamp = Date.now();
-    const storagePath = `users/${user.uuid}/${folderUuid || 'root'}/${timestamp}-${
-      file.originalname
-    }`;
-
-    // Check storage quota
-    const organization = await this.organizationModel.findByPk(user.organization_id);
-    if (!organization) {
-      throw new NotFoundException('Organization not found');
-    }
-
-    const fileSize = parseInt(file.size, 10);
-    const currentUsage = parseInt(organization.storage_used as any, 10);
-    const maxStorage = parseInt(organization.max_storage as any, 10);
-
-    if (currentUsage + fileSize > maxStorage) {
-      throw new ForbiddenException('Storage usage quota exceeded for this organization.');
-    }
-
-    await this.storageService.upload(file, storagePath);
-
-    // Update storage usage
-    await organization.increment('storage_used', { by: fileSize });
-
-    const fileRecord = await this.fileModel.create({
-      name: file.originalname,
-      original_name: file.originalname,
-      size: file.size,
-      mime_type: file.mimetype,
-      storage_path: storagePath,
-      storage_provider: this.storageService.getDriver(),
-      storage_bucket: this.storageService.getBucket(),
-      user_id: user.id,
-      folder_id: folderId,
-    });
-
-    await this.auditService.log(
-      'FILE_UPLOAD',
-      user,
-      { name: file.originalname, folderUuid, storagePath },
-      fileRecord.id,
-      'file',
-    );
-
-    return fileRecord;
   }
 
   async findAll(user: UserEntity, folderUuid?: string, isTrashed = false) {

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { FileService } from './file.service';
-import { FileEntity, FolderEntity } from '@src/entities';
+import { FileEntity, FolderEntity, OrganizationEntity } from '@src/entities';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
 import { NotFoundException } from '@nestjs/common';
@@ -10,6 +10,7 @@ describe('FileService', () => {
   let service: FileService;
   let fileModel: typeof FileEntity;
   let folderModel: typeof FolderEntity;
+  let organizationModel: typeof OrganizationEntity;
   let storageService: StorageService;
   let auditService: AuditService;
 
@@ -52,6 +53,16 @@ describe('FileService', () => {
     getBucket: jest.fn().mockReturnValue(null),
   };
 
+  const mockOrganizationModel = {
+    findByPk: jest.fn().mockResolvedValue({
+      id: 1,
+      storage_used: 0,
+      max_storage: 1000,
+      increment: jest.fn(),
+      decrement: jest.fn(),
+    }),
+  };
+
   const mockAuditService = {
     log: jest.fn().mockResolvedValue(true),
   };
@@ -67,6 +78,10 @@ describe('FileService', () => {
         {
           provide: getModelToken(FolderEntity),
           useValue: mockFolderModel,
+        },
+        {
+          provide: getModelToken(OrganizationEntity),
+          useValue: mockOrganizationModel,
         },
         {
           provide: StorageService,

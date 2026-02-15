@@ -188,6 +188,34 @@ export class AuthService {
     return { user: userResponse, ...tokens };
   }
 
+  async getMe(userId: number) {
+    const user = await this.userModel.findByPk(userId, {
+      include: [UserTypeEntity, OrganizationEntity],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const userResponse = user.toJSON() as Record<string, unknown>;
+    delete userResponse.password;
+    return userResponse;
+  }
+
+  async getMe(userId: number) {
+    const user = await this.userModel.findByPk(userId, {
+      include: [UserTypeEntity, OrganizationEntity],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const userResponse = user.toJSON() as Record<string, unknown>;
+    delete userResponse.password;
+    return userResponse;
+  }
+
   async refreshToken(refreshToken: string, ipAddress?: string, userAgent?: string) {
     const payload = this.tokenService.verifyToken(refreshToken);
 
