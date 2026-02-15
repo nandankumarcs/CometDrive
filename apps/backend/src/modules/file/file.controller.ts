@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FileService } from './file.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
+import { SuccessResponse } from '@src/commons/dtos';
 import { Response } from 'express';
 
 @ApiTags('Files')
@@ -48,50 +49,65 @@ export class FileController {
       },
     },
   })
-  upload(@UploadedFile() file: any, @Body() createFileDto: CreateFileDto, @Request() req: any) {
-    return this.fileService.upload(file, req.user, createFileDto);
+  async upload(
+    @UploadedFile() file: any,
+    @Body() createFileDto: CreateFileDto,
+    @Request() req: any,
+  ) {
+    const result = await this.fileService.upload(file, req.user, createFileDto);
+    return new SuccessResponse('File uploaded successfully', result);
   }
 
   @Get()
   @ApiOperation({ summary: 'List files' })
   @ApiQuery({ name: 'folderUuid', required: false })
   @ApiQuery({ name: 'isTrashed', required: false, type: Boolean })
-  findAll(
+  async findAll(
     @Request() req: any,
     @Query('folderUuid') folderUuid?: string,
     @Query('isTrashed') isTrashed?: string,
   ) {
-    return this.fileService.findAll(req.user, folderUuid, isTrashed === 'true');
+    const result = await this.fileService.findAll(req.user, folderUuid, isTrashed === 'true');
+    return new SuccessResponse('Files retrieved successfully', result);
   }
 
   @Get(':uuid')
   @ApiOperation({ summary: 'Get file details' })
-  findOne(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.fileService.findOne(uuid, req.user);
+  async findOne(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.findOne(uuid, req.user);
+    return new SuccessResponse('File retrieved successfully', result);
   }
 
   @Patch(':uuid')
   @ApiOperation({ summary: 'Update file (rename or move)' })
-  update(@Param('uuid') uuid: string, @Body() updateFileDto: UpdateFileDto, @Request() req: any) {
-    return this.fileService.update(uuid, updateFileDto, req.user);
+  async update(
+    @Param('uuid') uuid: string,
+    @Body() updateFileDto: UpdateFileDto,
+    @Request() req: any,
+  ) {
+    const result = await this.fileService.update(uuid, updateFileDto, req.user);
+    return new SuccessResponse('File updated successfully', result);
   }
 
   @Delete(':uuid')
   @ApiOperation({ summary: 'Move file to trash' })
-  trash(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.fileService.trash(uuid, req.user);
+  async trash(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.trash(uuid, req.user);
+    return new SuccessResponse('File moved to trash', result);
   }
 
   @Post(':uuid/restore')
   @ApiOperation({ summary: 'Restore file from trash' })
-  restore(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.fileService.restore(uuid, req.user);
+  async restore(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.restore(uuid, req.user);
+    return new SuccessResponse('File restored successfully', result);
   }
 
   @Delete(':uuid/permanent')
   @ApiOperation({ summary: 'Delete file permanently' })
-  deletePermanently(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.fileService.deletePermanently(uuid, req.user);
+  async deletePermanently(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.deletePermanently(uuid, req.user);
+    return new SuccessResponse('File deleted permanently', result);
   }
 
   @Get(':uuid/download')
@@ -112,6 +128,6 @@ export class FileController {
   @ApiOperation({ summary: 'Get signed URL for file' })
   async getSignedUrl(@Param('uuid') uuid: string, @Request() req: any) {
     const url = await this.fileService.getSignedUrl(uuid, req.user);
-    return { url };
+    return new SuccessResponse('Signed URL generated successfully', { url });
   }
 }

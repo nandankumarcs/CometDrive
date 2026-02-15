@@ -15,12 +15,18 @@ api.interceptors.request.use((config) => {
       if (raw) {
         const parsed = JSON.parse(raw);
         const token = parsed?.state?.accessToken;
+        console.log('[API] Interceptor - Token from storage:', token ? 'Found' : 'Missing', token);
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[API] Interceptor - Set Authorization header');
+        } else {
+          console.warn('[API] Interceptor - No token found in storage');
         }
+      } else {
+        console.warn('[API] Interceptor - No auth-storage in localStorage');
       }
-    } catch {
-      // ignore parse errors
+    } catch (e) {
+      console.error('[API] Interceptor - Error parsing auth-storage', e);
     }
   }
   return config;
@@ -35,6 +41,7 @@ api.interceptors.response.use(
       typeof window !== 'undefined' &&
       !window.location.pathname.startsWith('/login')
     ) {
+      console.warn('[API] Interceptor - 401 Unauthorized, redirecting to login');
       localStorage.removeItem('auth-storage');
       window.location.href = '/login';
     }

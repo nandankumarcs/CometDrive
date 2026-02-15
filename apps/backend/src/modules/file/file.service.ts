@@ -32,17 +32,20 @@ export class FileService {
     }
 
     const timestamp = Date.now();
-    const storageKey = `users/${user.uuid}/${folderUuid || 'root'}/${timestamp}-${
+    const storagePath = `users/${user.uuid}/${folderUuid || 'root'}/${timestamp}-${
       file.originalname
     }`;
 
-    await this.storageService.upload(file, storageKey);
+    await this.storageService.upload(file, storagePath);
 
     const fileRecord = await this.fileModel.create({
       name: file.originalname,
+      original_name: file.originalname,
       size: file.size,
       mime_type: file.mimetype,
-      storage_key: storageKey,
+      storage_path: storagePath,
+      storage_provider: this.storageService.getDriver(),
+      storage_bucket: this.storageService.getBucket(),
       user_id: user.id,
       folder_id: folderId,
     });
@@ -50,7 +53,7 @@ export class FileService {
     await this.auditService.log(
       'FILE_UPLOAD',
       user,
-      { name: file.originalname, folderUuid, storageKey },
+      { name: file.originalname, folderUuid, storagePath },
       fileRecord.id,
       'file',
     );
@@ -165,23 +168,23 @@ export class FileService {
     }
 
     const fileId = file.id;
-    const storageKey = file.storage_key;
+    const storagePath = file.storage_path;
 
-    await this.storageService.delete(storageKey);
+    await this.storageService.delete(storagePath);
     await file.destroy({ force: true });
 
-    await this.auditService.log('FILE_DELETE_PERMANENT', user, { storageKey }, fileId, 'file');
+    await this.auditService.log('FILE_DELETE_PERMANENT', user, { storagePath }, fileId, 'file');
 
     return { success: true };
   }
 
   async getDownloadStream(uuid: string, user: UserEntity) {
     const file = await this.findOne(uuid, user);
-    return this.storageService.download(file.storage_key);
+    return this.storageService.download(file.storage_path);
   }
 
   async getSignedUrl(uuid: string, user: UserEntity) {
     const file = await this.findOne(uuid, user);
-    return this.storageService.getSignedUrl(file.storage_key);
+    return this.storageService.getSignedUrl(file.storage_path);
   }
 }

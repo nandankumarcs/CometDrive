@@ -15,12 +15,13 @@ export interface FileItem {
   updated_at: string;
 }
 
-export function useFiles(folderUuid?: string | null) {
+export function useFiles(folderUuid?: string | null, isTrashed = false) {
   const params = new URLSearchParams();
   if (folderUuid) params.set('folderUuid', folderUuid);
+  if (isTrashed) params.set('isTrashed', 'true');
 
   return useQuery<FileItem[]>({
-    queryKey: ['files', folderUuid ?? 'root'],
+    queryKey: ['files', folderUuid ?? 'root', isTrashed],
     queryFn: async () => {
       const res = await api.get(`/files?${params.toString()}`);
       return res.data.data;
@@ -44,6 +45,17 @@ export function useUploadFile() {
   });
 }
 
+export function useRenameFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ uuid, name }: { uuid: string; name: string }) => {
+      const res = await api.patch(`/files/${uuid}`, { name });
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+  });
+}
+
 export function useTrashFile() {
   const qc = useQueryClient();
   return useMutation({
@@ -59,6 +71,16 @@ export function useRestoreFile() {
   return useMutation({
     mutationFn: async (uuid: string) => {
       await api.post(`/files/${uuid}/restore`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+  });
+}
+
+export function useDeleteFilePermanent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (uuid: string) => {
+      await api.delete(`/files/${uuid}/permanent`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
   });

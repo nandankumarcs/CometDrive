@@ -14,6 +14,9 @@ import { UserEntity } from './user.entity';
 @Table({
   tableName: 'folder',
   paranoid: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  deletedAt: 'deleted_at',
 })
 export class FolderEntity extends BaseEntity {
   @IsUUID(4)
@@ -56,7 +59,6 @@ export class FolderEntity extends BaseEntity {
   declare subfolders: FolderEntity[];
 
   @Column({
-    field: 'deleted_at',
     type: DataType.DATE,
     allowNull: true,
   })

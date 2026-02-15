@@ -19,9 +19,12 @@ describe('FileService', () => {
     id: 1,
     uuid: 'file-uuid',
     name: 'test.txt',
+    original_name: 'test.txt',
     size: 100,
     mime_type: 'text/plain',
-    storage_key: 'key',
+    storage_path: 'users/user-uuid/root/test.txt',
+    storage_bucket: null,
+    storage_provider: 'local',
     user_id: 1,
     folder_id: null,
     deleted_at: null,
@@ -41,10 +44,12 @@ describe('FileService', () => {
   };
 
   const mockStorageService = {
-    upload: jest.fn().mockResolvedValue('key'),
+    upload: jest.fn().mockResolvedValue('users/user-uuid/root/test.txt'),
     download: jest.fn().mockResolvedValue({ pipe: jest.fn() }),
     delete: jest.fn().mockResolvedValue(true),
     getSignedUrl: jest.fn().mockResolvedValue('http://signed.url'),
+    getDriver: jest.fn().mockReturnValue('local'),
+    getBucket: jest.fn().mockReturnValue(null),
   };
 
   const mockAuditService = {
@@ -98,6 +103,9 @@ describe('FileService', () => {
       expect(fileModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'test.txt',
+          original_name: 'test.txt',
+          storage_path: expect.stringMatching(/users\/user-uuid\/root\/\d+-test.txt/),
+          storage_provider: 'local',
           user_id: mockUser.id,
           folder_id: null,
         }),
@@ -145,7 +153,7 @@ describe('FileService', () => {
     it('should delete from storage and DB', async () => {
       mockFileModel.findOne.mockResolvedValueOnce(mockFileInstance);
       await service.deletePermanently(mockFileInstance.uuid, mockUser);
-      expect(storageService.delete).toHaveBeenCalledWith(mockFileInstance.storage_key);
+      expect(storageService.delete).toHaveBeenCalledWith(mockFileInstance.storage_path);
       expect(mockFileInstance.destroy).toHaveBeenCalledWith({ force: true });
     });
 

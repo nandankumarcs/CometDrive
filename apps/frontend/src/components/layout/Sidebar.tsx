@@ -1,14 +1,21 @@
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HardDrive, Trash2, Cloud } from 'lucide-react';
 
 const navItems = [
-  { name: 'My Drive', href: '/drive', icon: HardDrive },
-  { name: 'Trash', href: '/drive/trash', icon: Trash2 },
+  { name: 'My Drive', href: '/drive', icon: HardDrive, exact: true },
+  { name: 'Trash', href: '/drive/trash', icon: Trash2, exact: false },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  const isActive = (href: string, exact: boolean) => {
+    if (exact) return pathname === href;
+    return pathname.startsWith(href);
+  };
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen fixed left-0 top-0 pt-16 z-30 transition-colors duration-300">
@@ -16,20 +23,20 @@ export function Sidebar() {
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const active = isActive(item.href, item.exact);
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                  isActive
+                  active
                     ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 <Icon
                   className={`mr-3 h-5 w-5 ${
-                    isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'
+                    active ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'
                   }`}
                 />
                 {item.name}

@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FolderService } from './folder.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
+import { SuccessResponse } from '@src/commons/dtos';
 
 @ApiTags('Folders')
 @ApiBearerAuth()
@@ -25,53 +26,60 @@ export class FolderController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new folder' })
-  create(@Body() createFolderDto: CreateFolderDto, @Request() req: any) {
-    return this.folderService.create(createFolderDto, req.user);
+  async create(@Body() createFolderDto: CreateFolderDto, @Request() req: any) {
+    const result = await this.folderService.create(createFolderDto, req.user);
+    return new SuccessResponse('Folder created successfully', result);
   }
 
   @Get()
   @ApiOperation({ summary: 'List folders' })
   @ApiQuery({ name: 'parentUuid', required: false })
   @ApiQuery({ name: 'isTrashed', required: false, type: Boolean })
-  findAll(
+  async findAll(
     @Request() req: any,
     @Query('parentUuid') parentUuid?: string,
     @Query('isTrashed') isTrashed?: string,
   ) {
-    return this.folderService.findAll(req.user, parentUuid, isTrashed === 'true');
+    const result = await this.folderService.findAll(req.user, parentUuid, isTrashed === 'true');
+    return new SuccessResponse('Folders retrieved successfully', result);
   }
 
   @Get(':uuid')
   @ApiOperation({ summary: 'Get folder details' })
-  findOne(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.folderService.findOne(uuid, req.user);
+  async findOne(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.folderService.findOne(uuid, req.user);
+    return new SuccessResponse('Folder retrieved successfully', result);
   }
 
   @Patch(':uuid')
   @ApiOperation({ summary: 'Update folder (rename or move)' })
-  update(
+  async update(
     @Param('uuid') uuid: string,
     @Body() updateFolderDto: UpdateFolderDto,
     @Request() req: any,
   ) {
-    return this.folderService.update(uuid, updateFolderDto, req.user);
+    const result = await this.folderService.update(uuid, updateFolderDto, req.user);
+    return new SuccessResponse('Folder updated successfully', result);
   }
 
   @Delete(':uuid')
   @ApiOperation({ summary: 'Move folder to trash (soft delete)' })
-  trash(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.folderService.trash(uuid, req.user);
+  async trash(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.folderService.trash(uuid, req.user);
+    return new SuccessResponse('Folder moved to trash', result);
   }
 
   @Post(':uuid/restore')
   @ApiOperation({ summary: 'Restore folder from trash' })
-  restore(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.folderService.restore(uuid, req.user);
+  async restore(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.folderService.restore(uuid, req.user);
+    return new SuccessResponse('Folder restored successfully', result);
   }
 
   @Delete(':uuid/permanent')
   @ApiOperation({ summary: 'Delete folder permanently' })
-  deletePermanently(@Param('uuid') uuid: string, @Request() req: any) {
-    return this.folderService.deletePermanently(uuid, req.user);
+  async deletePermanently(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.folderService.deletePermanently(uuid, req.user);
+    return new SuccessResponse('Folder deleted permanently', result);
   }
 }

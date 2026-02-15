@@ -8,12 +8,15 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { BaseEntity } from './base.entity';
-import { UserEntity } from './user.entity';
 import { FolderEntity } from './folder.entity';
+import { UserEntity } from './user.entity';
 
 @Table({
   tableName: 'file',
   paranoid: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  deletedAt: 'deleted_at',
 })
 export class FileEntity extends BaseEntity {
   @IsUUID(4)
@@ -31,10 +34,11 @@ export class FileEntity extends BaseEntity {
   declare name: string;
 
   @Column({
-    type: DataType.BIGINT,
+    field: 'original_name',
+    type: DataType.STRING,
     allowNull: false,
   })
-  declare size: number;
+  declare original_name: string;
 
   @Column({
     field: 'mime_type',
@@ -44,11 +48,32 @@ export class FileEntity extends BaseEntity {
   declare mime_type: string;
 
   @Column({
-    field: 'storage_key',
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  declare size: number;
+
+  @Column({
+    field: 'storage_path',
     type: DataType.STRING,
     allowNull: false,
   })
-  declare storage_key: string;
+  declare storage_path: string;
+
+  @Column({
+    field: 'storage_bucket',
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare storage_bucket: string | null;
+
+  @Column({
+    field: 'storage_provider',
+    type: DataType.STRING,
+    allowNull: false,
+    defaultValue: 'local',
+  })
+  declare storage_provider: string;
 
   @ForeignKey(() => UserEntity)
   @Column({
@@ -73,7 +98,6 @@ export class FileEntity extends BaseEntity {
   declare folder: FolderEntity | null;
 
   @Column({
-    field: 'deleted_at',
     type: DataType.DATE,
     allowNull: true,
   })

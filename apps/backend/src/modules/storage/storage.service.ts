@@ -9,21 +9,33 @@ import { AllConfigType } from '../../config/config.type';
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private strategy: StorageInterface;
+  private readonly driver: string;
 
   constructor(
     private readonly configService: ConfigService<AllConfigType>,
     private readonly localStorageStrategy: LocalStorageStrategy,
     private readonly s3StorageStrategy: S3StorageStrategy,
   ) {
-    const driver = this.configService.getOrThrow('file.driver', { infer: true });
+    this.driver = this.configService.getOrThrow('file.driver', { infer: true });
 
-    if (driver === 's3') {
+    if (this.driver === 's3') {
       this.strategy = this.s3StorageStrategy;
       this.logger.log('Using S3StorageStrategy');
     } else {
       this.strategy = this.localStorageStrategy;
       this.logger.log('Using LocalStorageStrategy');
     }
+  }
+
+  getDriver(): string {
+    return this.driver;
+  }
+
+  getBucket(): string | null {
+    if (this.driver === 's3') {
+      return this.configService.get('file.s3.bucket', { infer: true }) || null;
+    }
+    return null;
   }
 
   async upload(file: Express.Multer.File, key: string): Promise<string> {
