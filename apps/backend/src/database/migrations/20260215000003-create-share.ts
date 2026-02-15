@@ -1,6 +1,6 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
-export default {
+module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable('share', {
       id: {
@@ -20,16 +20,16 @@ export default {
         unique: true,
       },
       file_id: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: 'file', key: 'uuid' },
+        references: { model: 'file', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
       created_by: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: 'users', key: 'uuid' },
+        references: { model: 'user', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },

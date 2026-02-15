@@ -57,6 +57,20 @@ export class OrganizationEntity extends BaseEntity {
   declare description: string;
 
   @Column({
+    type: DataType.BIGINT,
+    allowNull: false,
+    defaultValue: 1073741824, // 1GB in bytes
+  })
+  declare max_storage: number;
+
+  @Column({
+    type: DataType.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare storage_used: number;
+
+  @Column({
     type: DataType.DATE,
     allowNull: true,
   })

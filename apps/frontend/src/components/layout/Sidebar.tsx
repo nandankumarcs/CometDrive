@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HardDrive, Trash2, Cloud } from 'lucide-react';
+import { useAuthStore } from '../../store/auth.store';
 
 const navItems = [
   { name: 'My Drive', href: '/drive', icon: HardDrive, exact: true },
@@ -15,6 +16,19 @@ export function Sidebar() {
   const isActive = (href: string, exact: boolean) => {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
+  };
+
+  const { user } = useAuthStore();
+  const storageUsed = parseInt(user?.organization?.storage_used || '0', 10);
+  const maxStorage = parseInt(user?.organization?.max_storage || '1073741824', 10); // Default 1GB
+  const percentage = Math.min((storageUsed / maxStorage) * 100, 100);
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   return (
@@ -55,12 +69,12 @@ export function Sidebar() {
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2 overflow-hidden">
           <div
             className="bg-primary-600 h-2.5 rounded-full transition-all duration-500"
-            style={{ width: '45%' }}
+            style={{ width: `${percentage}%` }}
           ></div>
         </div>
         <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>4.5 GB used</span>
-          <span>10 GB total</span>
+          <span>{formatSize(storageUsed)} used</span>
+          <span>{formatSize(maxStorage)} total</span>
         </div>
       </div>
     </aside>

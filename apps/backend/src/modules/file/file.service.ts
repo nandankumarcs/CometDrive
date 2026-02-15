@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { FileEntity, FolderEntity, UserEntity } from '@src/entities';
+import { FileEntity, FolderEntity, UserEntity, OrganizationEntity } from '@src/entities';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
 
 @Injectable()
 export class FileService {
@@ -13,6 +13,8 @@ export class FileService {
     private readonly fileModel: typeof FileEntity,
     @InjectModel(FolderEntity)
     private readonly folderModel: typeof FolderEntity,
+    @InjectModel(OrganizationEntity)
+    private readonly organizationModel: typeof OrganizationEntity,
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
   ) {}
@@ -36,7 +38,24 @@ export class FileService {
       file.originalname
     }`;
 
+    // Check storage quota
+    const organization = await this.organizationModel.findByPk(user.organization_id);
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    const fileSize = parseInt(file.size, 10);
+    const currentUsage = parseInt(organization.storage_used as any, 10);
+    const maxStorage = parseInt(organization.max_storage as any, 10);
+
+    if (currentUsage + fileSize > maxStorage) {
+      throw new ForbiddenException('Storage usage quota exceeded for this organization.');
+    }
+
     await this.storageService.upload(file, storagePath);
+
+    // Update storage usage
+    await organization.increment('storage_used', { by: fileSize });
 
     const fileRecord = await this.fileModel.create({
       name: file.originalname,
@@ -172,6 +191,14 @@ export class FileService {
 
     await this.storageService.delete(storagePath);
     await file.destroy({ force: true });
+
+    // Update storage usage
+    const organization = await this.organizationModel.findByPk(user.organization_id);
+    if (organization) {
+      // Ensure we don't go below zero (though unlikely with proper logic)
+      // Sequelize decrement is useful here
+      await organization.decrement('storage_used', { by: file.size });
+    }
 
     await this.auditService.log('FILE_DELETE_PERMANENT', user, { storagePath }, fileId, 'file');
 

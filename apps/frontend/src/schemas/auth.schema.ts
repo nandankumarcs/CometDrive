@@ -30,6 +30,12 @@ export interface AuthUser {
   first_name: string;
   last_name: string;
   role: string;
+  organization?: {
+    uuid: string;
+    name: string;
+    max_storage: string;
+    storage_used: string;
+  };
 }
 
 export interface LoginResponse {

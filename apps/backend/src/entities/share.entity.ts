@@ -18,20 +18,20 @@ export class Share extends BaseEntity {
 
   @ForeignKey(() => FileEntity)
   @Column({
-    type: DataType.UUID,
+    type: DataType.INTEGER,
     allowNull: false,
   })
-  file_id: string;
+  file_id: number;
 
   @BelongsTo(() => FileEntity)
   file: FileEntity;
 
   @ForeignKey(() => UserEntity)
   @Column({
-    type: DataType.UUID,
+    type: DataType.INTEGER,
     allowNull: false,
   })
-  created_by: string;
+  created_by: number;
 
   @BelongsTo(() => UserEntity)
   creator: UserEntity;
