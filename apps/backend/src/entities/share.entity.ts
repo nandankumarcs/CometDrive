@@ -1,4 +1,12 @@
-import { Table, Column, DataType, ForeignKey, BelongsTo, AllowNull } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  AllowNull,
+  DeletedAt,
+} from 'sequelize-typescript';
 import { UserEntity } from './user.entity';
 import { FileEntity } from './file.entity';
 import { BaseEntity } from './base.entity';
@@ -10,47 +18,69 @@ import { BaseEntity } from './base.entity';
 })
 export class Share extends BaseEntity {
   @Column({
+    field: 'uuid',
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
+    allowNull: false,
+    unique: true,
+  })
+  declare uuid: string;
+
+  @Column({
     type: DataType.STRING,
     allowNull: false,
     unique: true,
   })
-  token: string;
+  declare token: string;
 
   @ForeignKey(() => FileEntity)
   @Column({
+    field: 'file_id',
     type: DataType.INTEGER,
     allowNull: false,
   })
-  file_id: number;
+  declare file_id: number;
 
   @BelongsTo(() => FileEntity)
-  file: FileEntity;
+  declare file: FileEntity;
 
   @ForeignKey(() => UserEntity)
   @Column({
+    field: 'created_by',
     type: DataType.INTEGER,
     allowNull: false,
   })
-  created_by: number;
+  declare created_by: number;
 
   @BelongsTo(() => UserEntity)
-  creator: UserEntity;
+  declare creator: UserEntity;
 
   @Column({
+    field: 'is_active',
     type: DataType.BOOLEAN,
     defaultValue: true,
   })
-  is_active: boolean;
+  declare is_active: boolean;
 
   @AllowNull(true)
   @Column({
+    field: 'expires_at',
     type: DataType.DATE,
   })
-  expires_at: Date | null;
+  declare expires_at: Date | null;
 
   @Column({
-    type: DataType.INTEGER, // Views count, optional but good for stats
+    field: 'views',
+    type: DataType.INTEGER,
     defaultValue: 0,
   })
-  views: number;
+  declare views: number;
+
+  @DeletedAt
+  @Column({
+    field: 'deleted_at',
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  declare deletedAt: Date | null;
 }

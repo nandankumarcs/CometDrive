@@ -151,3 +151,12 @@ export function useDownloadFile() {
     },
   });
 }
+
+export function useDownloadZip() {
+  return useMutation({
+    mutationFn: async (uuids: string[]) => {
+      const res = await api.post('/files/download-zip', { uuids }, { responseType: 'blob' });
+      return res.data;
+    },
+  });
+}

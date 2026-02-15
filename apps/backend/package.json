@@ -137,6 +137,7 @@
     "@nestjs/sequelize": "^11.0.1",
     "@nestjs/swagger": "^11.2.3",
     "@types/multer": "^2.0.0",
+    "archiver": "^7.0.1",
     "axios": "^1.13.5",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
@@ -162,6 +163,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.14",
     "@nestjs/testing": "^11.0.0",
+    "@types/archiver": "^7.0.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.7",

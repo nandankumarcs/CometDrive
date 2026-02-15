@@ -6,7 +6,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { SuccessResponse } from '../../commons/dtos/success-response.dto';
 
 @ApiTags('shares')
-@Controller('shares')
+@Controller({ path: 'shares', version: '1' })
 export class ShareController {
   constructor(private readonly shareService: ShareService) {}
 

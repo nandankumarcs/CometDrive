@@ -86,19 +86,32 @@ describe('ShareService', () => {
 
   describe('revoke', () => {
     it('should revoke an active share', async () => {
-      const user = { uuid: 'user-uuid' } as UserEntity;
+      const user = { uuid: 'user-uuid', id: 1 } as UserEntity;
+      const file = { uuid: 'file-uuid', id: 1 } as FileEntity;
       const share = { is_active: true, save: jest.fn() };
 
+      mockFileModel.findOne.mockResolvedValue(file);
       mockShareModel.findOne.mockResolvedValue(share);
 
       await service.revoke(user, 'file-uuid');
 
+      expect(mockFileModel.findOne).toHaveBeenCalledWith({ where: { uuid: 'file-uuid' } });
       expect(share.is_active).toBe(false);
       expect(share.save).toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException if no active share found', async () => {
+    it('should throw NotFoundException if file not found', async () => {
       const user = { uuid: 'user-uuid' } as UserEntity;
+      mockFileModel.findOne.mockResolvedValue(null);
+
+      await expect(service.revoke(user, 'file-uuid')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if no active share found', async () => {
+      const user = { uuid: 'user-uuid', id: 1 } as UserEntity;
+      const file = { uuid: 'file-uuid', id: 1 } as FileEntity;
+
+      mockFileModel.findOne.mockResolvedValue(file);
       mockShareModel.findOne.mockResolvedValue(null);
 
       await expect(service.revoke(user, 'file-uuid')).rejects.toThrow(NotFoundException);

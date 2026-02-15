@@ -1,9 +1,9 @@
 'use client';
 
-import { ChevronRight, LayoutGrid, List, FolderPlus, Upload, Trash2, X } from 'lucide-react';
+import { ChevronRight, LayoutGrid, List, FolderPlus, Upload, Trash2, X, Info } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
 import { useEffect, useState } from 'react';
-import { useTrashFile } from '../../hooks/use-files';
+import { useTrashFile, useDownloadZip } from '../../hooks/use-files';
 import { useTrashFolder } from '../../hooks/use-folders';
 
 interface DriveToolbarProps {
@@ -32,7 +32,36 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
 
   const trashFile = useTrashFile();
   const trashFolder = useTrashFolder();
+  const downloadZip = useDownloadZip();
   const [isTrashing, setIsTrashing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleBulkDownload = async () => {
+    if (selectedItems.length === 0) return;
+    setIsDownloading(true);
+    try {
+      const fileUuids = selectedItems
+        .filter((item) => item.type === 'file')
+        .map((item) => item.uuid);
+
+      if (fileUuids.length > 0) {
+        const blob = await downloadZip.mutateAsync(fileUuids);
+        // Trigger file download
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `download-${Date.now()}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      clearSelection();
+    } catch (error) {
+      console.error('Failed to download zip:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleBulkTrash = async () => {
     if (selectedItems.length === 0) return;
@@ -205,6 +234,14 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
                   {selectedItems.length}
                 </span>
                 <button
+                  onClick={() => handleBulkDownload()}
+                  disabled={isDownloading}
+                  className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50"
+                  title="Download Selected"
+                >
+                  <Upload className="h-4 w-4 rotate-180" />
+                </button>
+                <button
                   onClick={handleBulkTrash}
                   disabled={isTrashing}
                   className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50"
@@ -224,6 +261,18 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
           )}
 
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+
+          <button
+            onClick={store.toggleDetails}
+            className={`p-1.5 rounded-lg transition-colors ${
+              store.showDetails
+                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+            title="View Details"
+          >
+            <Info className="h-5 w-5" />
+          </button>
 
           {/* View toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">

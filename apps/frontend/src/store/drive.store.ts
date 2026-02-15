@@ -14,6 +14,9 @@ export interface ContextItem {
   uuid: string;
   name: string;
   type: 'file' | 'folder';
+  size?: number;
+  updatedAt?: string;
+  mimeType?: string;
 }
 
 export interface UploadItem {
@@ -39,6 +42,7 @@ interface DriveState {
   contextItem: ContextItem | null;
   previewItem: { uuid: string; name: string; mimeType: string } | null;
   isSidebarOpen: boolean;
+  showDetails: boolean;
 
   // Uploads
   uploads: Record<string, UploadItem>;
@@ -61,6 +65,7 @@ interface DriveState {
   closeModal: () => void;
   openPreview: (item: { uuid: string; name: string; mimeType: string }) => void;
   closePreview: () => void;
+  toggleDetails: () => void;
 
   // Upload Actions
   addUpload: (id: string, name: string) => void;
@@ -87,6 +92,7 @@ export const useDriveStore = create<DriveState>()(
       contextItem: null,
       previewItem: null,
       isSidebarOpen: true,
+      showDetails: false,
       uploads: {},
 
       setCurrentFolder: (uuid) =>
@@ -131,6 +137,7 @@ export const useDriveStore = create<DriveState>()(
       closeModal: () => set({ activeModal: null, contextItem: null }),
       openPreview: (item) => set({ previewItem: item }),
       closePreview: () => set({ previewItem: null }),
+      toggleDetails: () => set((state) => ({ showDetails: !state.showDetails })),
 
       addUpload: (id, name) =>
         set((state) => ({

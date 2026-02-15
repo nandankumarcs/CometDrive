@@ -1,5 +1,6 @@
 import { FileEntity, FolderEntity, UserEntity, OrganizationEntity } from '@src/entities';
 import { Op } from 'sequelize';
+import archiver from 'archiver';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
@@ -322,5 +323,42 @@ export class FileService {
       return `/api/v1/files/${file.uuid}/content`;
     }
     return this.storageService.getSignedUrl(file.storage_path);
+  }
+
+  async downloadZip(uuids: string[], user: UserEntity) {
+    const files = await this.fileModel.findAll({
+      where: {
+        uuid: { [Op.in]: uuids },
+        user_id: user.id,
+      },
+    });
+
+    if (!files.length) {
+      throw new NotFoundException('No files found');
+    }
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Sets the compression level.
+    });
+
+    // Handle errors explicitly
+    archive.on('error', (err) => {
+      throw err;
+    });
+
+    // Use a for...of loop to handle async operations sequentially
+    // Parallel might be faster but ensuring order/stability first
+    for (const file of files) {
+      try {
+        const stream = await this.storageService.download(file.storage_path);
+        archive.append(stream, { name: file.name });
+      } catch (error) {
+        this.logger.error(`Failed to add file ${file.name} to zip: ${error.message}`);
+        // Optionally append a text file with error, or just skip
+      }
+    }
+
+    archive.finalize();
+    return archive;
   }
 }

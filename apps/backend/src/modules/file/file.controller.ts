@@ -176,4 +176,30 @@ export class FileController {
     const url = await this.fileService.getSignedUrl(uuid, req.user);
     return new SuccessResponse('Signed URL generated successfully', { url });
   }
+
+  @Post('download-zip')
+  @ApiOperation({ summary: 'Download multiple files as ZIP' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        uuids: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+        },
+      },
+    },
+  })
+  async downloadZip(@Body() body: { uuids: string[] }, @Request() req: any, @Res() res: Response) {
+    const archive = await this.fileService.downloadZip(body.uuids, req.user);
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="download-${Date.now()}.zip"`,
+    });
+
+    archive.pipe(res);
+  }
 }
