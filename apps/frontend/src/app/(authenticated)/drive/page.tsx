@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { HardDrive, Upload, FolderPlus } from 'lucide-react';
 import { useDriveStore } from '../../../store/drive.store';
 import { useFolders } from '../../../hooks/use-folders';
-import { useFiles, useTrashFile, useDownloadFile } from '../../../hooks/use-files';
+import { useFiles, useTrashFile, useDownloadFile, useUploadFile } from '../../../hooks/use-files';
 import { useTrashFolder } from '../../../hooks/use-folders';
 import { DriveItem } from '../../../components/drive/DriveItem';
 import { DriveToolbar } from '../../../components/drive/DriveToolbar';
@@ -24,6 +24,9 @@ export default function DrivePage() {
   const trashFolder = useTrashFolder();
   const trashFile = useTrashFile();
   const downloadFile = useDownloadFile();
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const uploadFile = useUploadFile();
 
   // Reset breadcrumbs when mounting
   useEffect(() => {
@@ -43,12 +46,77 @@ export default function DrivePage() {
     [downloadFile],
   );
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      dragCounter.current = 0;
+
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        try {
+          for (let i = 0; i < files.length; i++) {
+            await uploadFile.mutateAsync({
+              file: files[i],
+              folderUuid: currentFolderUuid ?? undefined,
+            });
+          }
+        } catch (error) {
+          console.error('Drop upload failed:', error);
+        }
+      }
+    },
+    [currentFolderUuid, uploadFile],
+  );
+
   const isLoading = foldersLoading || filesLoading;
   const isEmpty = folders.length === 0 && files.length === 0;
 
   return (
-    <div className="flex flex-col h-full" onDragOver={(e) => e.preventDefault()}>
+    <div
+      className="flex flex-col h-full relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <DriveToolbar onUpload={triggerUpload} />
+
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="absolute inset-4 z-50 bg-primary-500/10 dark:bg-primary-500/20 backdrop-blur-sm border-4 border-primary-500 border-dashed rounded-xl flex flex-col items-center justify-center animate-in fade-in duration-200 pointer-events-none">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-full shadow-xl mb-4">
+            <Upload className="h-10 w-10 text-primary-600 dark:text-primary-400" />
+          </div>
+          <h3 className="text-xl font-bold text-primary-700 dark:text-primary-300">
+            Drop files to upload
+          </h3>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">

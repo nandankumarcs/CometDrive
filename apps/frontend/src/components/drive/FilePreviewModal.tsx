@@ -139,7 +139,7 @@ export function FilePreviewModal() {
     if (textContent !== null) {
       return (
         <div className="bg-white text-gray-900 p-8 rounded-lg shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-auto">
-          <pre className="font-mono text-sm whitespace-pre-wrap break-words">{textContent}</pre>
+          <pre className="font-mono text-sm whitespace-pre-wrap wrap-break-word">{textContent}</pre>
         </div>
       );
     }

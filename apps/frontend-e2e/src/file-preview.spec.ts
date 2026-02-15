@@ -16,31 +16,41 @@ test.describe('File Preview Feature', () => {
 
   test('should preview text file on double click', async ({ page }) => {
     // Create dummy text file
-    const txtPath = path.join(__dirname, 'temp-preview.txt');
+    const uniqueId = Date.now();
+    const filename = `preview-test-${uniqueId}.txt`;
+    const txtPath = path.join(__dirname, filename);
     fs.writeFileSync(txtPath, 'Playwright preview test content');
 
     // Upload
     await page.setInputFiles('input[type="file"]', txtPath);
-    await expect(page.locator('text=temp-preview.txt')).toBeVisible({ timeout: 10000 });
+    // Wait for upload to complete and appear in list
+    // Use exact text match to avoid partial matches
+    await expect(page.locator(`text=${filename}`)).toBeVisible({ timeout: 15000 });
 
     // Double click to preview
-    await page.dblclick('text=temp-preview.txt');
+    await page.dblclick(`text=${filename}`);
 
     // Verify modal
-    await expect(page.locator('h2:has-text("temp-preview.txt")')).toBeVisible();
-    await expect(page.locator('pre:has-text("Playwright preview test content")')).toBeVisible();
+    await expect(page.locator(`h2:has-text("${filename}")`)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('pre:has-text("Playwright preview test content")')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Close
     await page.click('button[title="Close"]');
-    await expect(page.locator('h2:has-text("temp-preview.txt")')).toBeHidden();
+    await expect(page.locator(`h2:has-text("${filename}")`)).toBeHidden();
 
     // Cleanup
-    fs.unlinkSync(txtPath);
+    if (fs.existsSync(txtPath)) {
+      fs.unlinkSync(txtPath);
+    }
   });
 
   test('should preview image file via context menu', async ({ page }) => {
     // Create dummy SVG
-    const svgPath = path.join(__dirname, 'temp-preview.svg');
+    const uniqueId = Date.now();
+    const filename = `preview-test-${uniqueId}.svg`;
+    const svgPath = path.join(__dirname, filename);
     fs.writeFileSync(
       svgPath,
       '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red" /></svg>',
@@ -48,16 +58,17 @@ test.describe('File Preview Feature', () => {
 
     // Upload
     await page.setInputFiles('input[type="file"]', svgPath);
-    await expect(page.locator('text=temp-preview.svg')).toBeVisible({ timeout: 10000 });
+    // Wait for upload to complete and appear in list
+    await expect(page.locator(`text=${filename}`)).toBeVisible({ timeout: 15000 });
 
     // Right click context menu
-    await page.click('text=temp-preview.svg', { button: 'right' });
+    await page.click(`text=${filename}`, { button: 'right' });
 
     // Click Preview
     await page.click('button:has-text("Preview")');
 
     // Verify modal
-    await expect(page.locator('h2:has-text("temp-preview.svg")')).toBeVisible();
+    await expect(page.locator(`h2:has-text("${filename}")`)).toBeVisible();
     // Check for img tag
     const img = page.locator('div[class*="fixed"] img');
     await expect(img).toBeVisible();
@@ -66,6 +77,8 @@ test.describe('File Preview Feature', () => {
     await page.click('button[title="Close"]');
 
     // Cleanup
-    fs.unlinkSync(svgPath);
+    if (fs.existsSync(svgPath)) {
+      fs.unlinkSync(svgPath);
+    }
   });
 });
