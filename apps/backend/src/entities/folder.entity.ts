@@ -59,6 +59,13 @@ export class FolderEntity extends BaseEntity {
   declare subfolders: FolderEntity[];
 
   @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+  })
+  declare is_starred: boolean;
+
+  @Column({
     type: DataType.DATE,
     allowNull: true,
   })

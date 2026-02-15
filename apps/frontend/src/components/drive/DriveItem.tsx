@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Folder as FolderIcon,
   MoreVertical,
@@ -11,6 +12,7 @@ import {
   XCircle,
   Link as LinkIcon,
   FileText,
+  Star,
 } from 'lucide-react';
 import { FileIcon } from './FileIcon';
 import { useDriveStore, type ItemType } from '../../store/drive.store';
@@ -24,8 +26,9 @@ interface DriveItemProps {
   updatedAt: string;
   isSelected: boolean;
   isTrashed?: boolean;
-  onNavigate?: () => void;
+  isStarred?: boolean;
   onTrash?: () => void;
+  onToggleStar?: () => void;
   onRestore?: () => void;
   onDeletePermanent?: () => void;
   onDownload?: () => void;
@@ -57,14 +60,16 @@ export function DriveItem({
   updatedAt,
   isSelected,
   isTrashed,
-  onNavigate,
+  isStarred,
   onTrash,
+  onToggleStar,
   onRestore,
   onDeletePermanent,
   onDownload,
   onPreview,
 }: DriveItemProps) {
   const { viewMode, toggleSelectItem, openModal, openPreview } = useDriveStore();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,8 +82,9 @@ export function DriveItem({
   }, []);
 
   const handleDoubleClick = () => {
-    if (type === 'folder' && onNavigate) onNavigate();
-    else if (type === 'file') {
+    if (type === 'folder') {
+      router.push(`/drive/${uuid}`);
+    } else if (type === 'file') {
       // Check if previewable
       const isPreviewable =
         mimeType?.startsWith('image/') ||
@@ -162,6 +168,23 @@ export function DriveItem({
           )}
         </div>
 
+        {/* Star Button */}
+        {onToggleStar && !isTrashed && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStar();
+            }}
+            className={`absolute top-2 left-2 z-10 p-1 rounded-md transition-all ${
+              isStarred
+                ? 'opacity-100 text-yellow-400 hover:text-yellow-500'
+                : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Star className={`h-4 w-4 ${isStarred ? 'fill-current' : ''}`} />
+          </button>
+        )}
+
         {/* Icon */}
         <div className="mb-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
           {type === 'folder' ? (
@@ -196,6 +219,23 @@ export function DriveItem({
       onDoubleClick={handleDoubleClick}
       onClick={() => toggleSelectItem({ uuid, name, type })}
     >
+      {/* Star Button */}
+      {onToggleStar && !isTrashed && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleStar();
+          }}
+          className={`mr-2 p-1 rounded-md transition-all ${
+            isStarred
+              ? 'opacity-100 text-yellow-400 hover:text-yellow-500'
+              : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          <Star className={`h-4 w-4 ${isStarred ? 'fill-current' : ''}`} />
+        </button>
+      )}
+
       {/* Icon */}
       <div className="flex-shrink-0 mr-3">
         {type === 'folder' ? (
@@ -253,6 +293,8 @@ export function DriveItem({
                       openPreview({ uuid, name, mimeType: mimeType || 'application/octet-stream' })
                   : undefined,
               handleShare,
+              isStarred,
+              onToggleStar,
             }}
           />
         )}
@@ -272,6 +314,8 @@ function ContextMenu({
   onDownload,
   onPreview,
   handleShare,
+  isStarred,
+  onToggleStar,
 }: {
   isTrashed?: boolean;
   type: ItemType;
@@ -282,6 +326,8 @@ function ContextMenu({
   onDownload?: () => void;
   onPreview?: () => void;
   handleShare: () => void;
+  isStarred?: boolean;
+  onToggleStar?: () => void;
 }) {
   const cls = 'flex items-center w-full px-3 py-2 text-sm text-left transition-colors';
   return (
@@ -320,6 +366,20 @@ function ContextMenu({
           >
             <Pencil className="h-4 w-4 mr-2" /> Rename
           </button>
+
+          {onToggleStar && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStar();
+              }}
+              className={`${cls} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700`}
+            >
+              <Star className={`h-4 w-4 mr-2 ${isStarred ? 'fill-current text-yellow-400' : ''}`} />
+              {isStarred ? 'Remove from Starred' : 'Add to Starred'}
+            </button>
+          )}
+
           {onPreview && (
             <button
               onClick={(e) => {

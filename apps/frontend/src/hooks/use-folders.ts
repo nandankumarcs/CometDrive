@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { useDriveStore } from '../store/drive.store';
 
 export interface Folder {
   id: number;
@@ -14,16 +15,45 @@ export interface Folder {
 }
 
 export function useFolders(parentUuid?: string | null, isTrashed = false) {
+  const { searchQuery, sortBy, sortOrder, isStarred } = useDriveStore();
+
   const params = new URLSearchParams();
   if (parentUuid) params.set('parentUuid', parentUuid);
   if (isTrashed) params.set('isTrashed', 'true');
+  if (isStarred) params.set('isStarred', 'true');
+  if (searchQuery) params.set('search', searchQuery);
+  // Folder filtering by type doesn't make sense, but sort does.
+  // We might want to separate sort logic for folders if they don't support 'size' or 'type'.
+  // For now, map compatible sorts.
+  const validSort = sortBy === 'size' ? 'name' : sortBy; // Folders don't have size
+  params.set('sort', validSort);
+  params.set('order', sortOrder);
 
   return useQuery<Folder[]>({
-    queryKey: ['folders', parentUuid ?? 'root', isTrashed],
+    queryKey: [
+      'folders',
+      parentUuid ?? 'root',
+      isTrashed,
+      isStarred,
+      searchQuery,
+      validSort,
+      sortOrder,
+    ],
     queryFn: async () => {
       const res = await api.get(`/folders?${params.toString()}`);
       return res.data.data;
     },
+  });
+}
+
+export function useToggleStarFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (uuid: string) => {
+      const res = await api.post(`/folders/${uuid}/toggle-star`);
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
 }
 

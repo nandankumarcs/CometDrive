@@ -15,6 +15,8 @@ interface AuthState {
   register: (token: string, firstName: string, lastName: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -82,8 +84,16 @@ export const useAuthStore = create<AuthState>()(
         },
 
         clearError: () => set({ error: null }),
+
+        _hasHydrated: false,
+        setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
       }),
-      { name: 'auth-storage' },
+      {
+        name: 'auth-storage',
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true);
+        },
+      },
     ),
     { name: 'AuthStore' },
   ),

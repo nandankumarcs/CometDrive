@@ -35,12 +35,27 @@ export class FolderController {
   @ApiOperation({ summary: 'List folders' })
   @ApiQuery({ name: 'parentUuid', required: false })
   @ApiQuery({ name: 'isTrashed', required: false, type: Boolean })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sort', required: false, enum: ['name', 'date'] })
+  @ApiQuery({ name: 'order', required: false, enum: ['ASC', 'DESC'] })
   async findAll(
     @Request() req: any,
     @Query('parentUuid') parentUuid?: string,
     @Query('isTrashed') isTrashed?: string,
+    @Query('search') search?: string,
+    @Query('sort') sort?: 'name' | 'date',
+    @Query('order') order?: 'ASC' | 'DESC',
+    @Query('isStarred') isStarred?: string,
   ) {
-    const result = await this.folderService.findAll(req.user, parentUuid, isTrashed === 'true');
+    const result = await this.folderService.findAll(
+      req.user,
+      parentUuid,
+      isTrashed === 'true',
+      search,
+      sort,
+      order,
+      isStarred === 'true',
+    );
     return new SuccessResponse('Folders retrieved successfully', result);
   }
 
@@ -88,5 +103,19 @@ export class FolderController {
   async emptyTrash(@Request() req: any) {
     const result = await this.folderService.emptyTrash(req.user);
     return new SuccessResponse('Trash emptied successfully', result);
+  }
+
+  @Post(':uuid/toggle-star')
+  @ApiOperation({ summary: 'Toggle star status of a folder' })
+  async toggleStar(@Request() req: any, @Param('uuid') uuid: string) {
+    const result = await this.folderService.toggleStar(uuid, req.user);
+    return new SuccessResponse('Folder star status toggled successfully', result);
+  }
+
+  @Get(':uuid/ancestry')
+  @ApiOperation({ summary: 'Get folder ancestry (breadcrumbs)' })
+  async getAncestry(@Request() req: any, @Param('uuid') uuid: string) {
+    const result = await this.folderService.getAncestry(uuid, req.user);
+    return new SuccessResponse('Folder ancestry retrieved successfully', result);
   }
 }

@@ -1,6 +1,10 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file if it exists (optional)
 // In production, environment variables are typically set directly in the environment
@@ -49,17 +53,12 @@ const databaseConfig = {
     migrationStorageTableName: 'sequelize_migrations',
     seederStorageTableName: 'sequelize_seeders',
     logging: false,
-    dialectOptions:
-      process.env.DATABASE_SSL_ENABLED === 'true'
-        ? {
-            ssl: {
-              rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === 'true',
-              ca: process.env.DATABASE_CA,
-              key: process.env.DATABASE_KEY,
-              cert: process.env.DATABASE_CERT,
-            },
-          }
-        : undefined,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
     pool: {
       max: 10,
       min: 2,
@@ -70,5 +69,5 @@ const databaseConfig = {
 };
 
 // Export for CommonJS (sequelize-cli compatibility)
-module.exports = databaseConfig;
+// module.exports = databaseConfig;
 export default databaseConfig;

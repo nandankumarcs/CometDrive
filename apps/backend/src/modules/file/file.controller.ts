@@ -62,12 +62,30 @@ export class FileController {
   @ApiOperation({ summary: 'List files' })
   @ApiQuery({ name: 'folderUuid', required: false })
   @ApiQuery({ name: 'isTrashed', required: false, type: Boolean })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'type', required: false })
+  @ApiQuery({ name: 'sort', required: false, enum: ['name', 'size', 'date'] })
+  @ApiQuery({ name: 'order', required: false, enum: ['ASC', 'DESC'] })
   async findAll(
     @Request() req: any,
     @Query('folderUuid') folderUuid?: string,
     @Query('isTrashed') isTrashed?: string,
+    @Query('search') search?: string,
+    @Query('type') type?: string,
+    @Query('sort') sort?: 'name' | 'size' | 'date',
+    @Query('order') order?: 'ASC' | 'DESC',
+    @Query('isStarred') isStarred?: string,
   ) {
-    const result = await this.fileService.findAll(req.user, folderUuid, isTrashed === 'true');
+    const result = await this.fileService.findAll(
+      req.user,
+      folderUuid,
+      isTrashed === 'true',
+      search,
+      type,
+      sort,
+      order,
+      isStarred === 'true',
+    );
     return new SuccessResponse('Files retrieved successfully', result);
   }
 
@@ -143,6 +161,13 @@ export class FileController {
     });
 
     stream.pipe(res);
+  }
+
+  @Post(':uuid/toggle-star')
+  @ApiOperation({ summary: 'Toggle star status of a file' })
+  async toggleStar(@Request() req: any, @Param('uuid') uuid: string) {
+    const result = await this.fileService.toggleStar(uuid, req.user);
+    return new SuccessResponse('File star status toggled successfully', result);
   }
 
   @Get(':uuid/signed-url')

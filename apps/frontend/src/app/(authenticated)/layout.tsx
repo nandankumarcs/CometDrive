@@ -9,19 +9,23 @@ import { FilePreviewModal } from '../../components/drive/FilePreviewModal';
 import { UploadProgressWidget } from '../../components/drive/UploadProgressWidget';
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (!isAuthenticated) {
-      router.push('/login');
+  }, []);
+
+  useEffect(() => {
+    if (_hasHydrated && !isAuthenticated) {
+      const returnUrl = encodeURIComponent(window.location.pathname);
+      router.push(`/login?returnUrl=${returnUrl}`);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, _hasHydrated, router]);
 
   // Don't render until hydrated to avoid flash
-  if (!mounted || !isAuthenticated) {
+  if (!mounted || !_hasHydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center space-y-4">

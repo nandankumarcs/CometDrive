@@ -5,21 +5,24 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '../../schemas/auth.schema';
 import { useAuthStore } from '../../store/auth.store';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Cloud, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/drive';
+
   // Hydration fix for persist store
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     if (isAuthenticated) {
-      router.push('/drive');
+      router.push(returnUrl);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, returnUrl]);
 
   const {
     register,
@@ -33,7 +36,7 @@ export default function LoginPage() {
     clearError();
     try {
       await login(data.email, data.password);
-      router.push('/drive');
+      router.push(returnUrl);
     } catch (err) {
       // Error handled in store
     }

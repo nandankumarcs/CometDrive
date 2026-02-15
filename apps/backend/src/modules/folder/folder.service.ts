@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { FolderEntity, UserEntity } from '@src/entities';
+import { Op } from 'sequelize';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AuditService } from '@src/commons/services';
@@ -38,10 +39,21 @@ export class FolderService {
     return folder;
   }
 
-  async findAll(user: UserEntity, parentUuid?: string, isTrashed = false) {
+  async findAll(
+    user: UserEntity,
+    parentUuid?: string,
+    isTrashed = false,
+    search?: string,
+    sort: 'name' | 'date' = 'name',
+    order: 'ASC' | 'DESC' = 'ASC',
+    isStarred = false,
+  ) {
     let parentId: number | null = null;
+    const where: any = {
+      user_id: user.id,
+    };
 
-    if (parentUuid) {
+    if (parentUuid && parentUuid !== 'root') {
       const parent = await this.folderModel.findOne({
         where: { uuid: parentUuid, user_id: user.id },
       });
@@ -49,15 +61,41 @@ export class FolderService {
         throw new NotFoundException('Parent folder not found');
       }
       parentId = parent.id;
+      where.parent_id = parentId;
+    } else if (parentUuid === 'root') {
+      where.parent_id = null;
+    }
+
+    if (!search && parentUuid === undefined) {
+      where.parent_id = null;
+    }
+
+    if (search) {
+      delete where.parent_id;
+      where.name = { [Op.iLike]: `%${search}%` };
+    }
+
+    if (isStarred) {
+      where.is_starred = true;
+      if (!parentUuid) {
+        delete where.parent_id;
+      }
+    }
+
+    let orderClause: any = [['name', 'ASC']];
+    if (sort) {
+      const fieldMap = {
+        name: 'name',
+        date: 'created_at',
+      };
+      const field = fieldMap[sort] || 'name';
+      orderClause = [[field, order]];
     }
 
     return this.folderModel.findAll({
-      where: {
-        user_id: user.id,
-        parent_id: parentId,
-      },
+      where,
       paranoid: !isTrashed,
-      order: [['name', 'ASC']],
+      order: orderClause,
     });
   }
 
@@ -180,5 +218,39 @@ export class FolderService {
     );
 
     return { success: true, count: itemsToDelete.length };
+  }
+
+  async toggleStar(uuid: string, user: UserEntity) {
+    const folder = await this.findOne(uuid, user);
+    return folder.update({ is_starred: !folder.is_starred });
+  }
+
+  async getAncestry(uuid: string, user: UserEntity) {
+    const folder = await this.findOne(uuid, user);
+
+    // Recursive CTE to get ancestry
+    // We go up from the found folder to the root
+    const query = `
+      WITH RECURSIVE folder_path AS (
+        SELECT id, uuid, name, parent_id, 0 as level
+        FROM folder
+        WHERE id = :folderId
+        UNION ALL
+        SELECT f.id, f.uuid, f.name, f.parent_id, fp.level + 1
+        FROM folder f
+        INNER JOIN folder_path fp ON f.id = fp.parent_id
+      )
+      SELECT uuid, name FROM folder_path ORDER BY level DESC;
+    `;
+
+    const results = await this.folderModel.sequelize?.query(query, {
+      replacements: { folderId: folder.id },
+      type: 'SELECT',
+    });
+
+    // Add "My Drive" as root if needed, but usually frontend handles "My Drive" as static root?
+    // Let's standardise: results will comprise the folders.
+    // Frontend usually has "My Drive" -> ...folders
+    return results || [];
   }
 }

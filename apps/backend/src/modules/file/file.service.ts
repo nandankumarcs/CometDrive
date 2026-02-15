@@ -1,4 +1,5 @@
 import { FileEntity, FolderEntity, UserEntity, OrganizationEntity } from '@src/entities';
+import { Op } from 'sequelize';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
@@ -90,10 +91,22 @@ export class FileService {
     }
   }
 
-  async findAll(user: UserEntity, folderUuid?: string, isTrashed = false) {
+  async findAll(
+    user: UserEntity,
+    folderUuid?: string,
+    isTrashed = false,
+    search?: string,
+    type?: string,
+    sort: 'name' | 'size' | 'date' = 'date',
+    order: 'ASC' | 'DESC' = 'DESC',
+    isStarred = false,
+  ) {
     let folderId: number | null = null;
+    const where: any = {
+      user_id: user.id,
+    };
 
-    if (folderUuid) {
+    if (folderUuid && folderUuid !== 'root') {
       const folder = await this.folderModel.findOne({
         where: { uuid: folderUuid, user_id: user.id },
       });
@@ -101,15 +114,52 @@ export class FileService {
         throw new NotFoundException('Folder not found');
       }
       folderId = folder.id;
+      where.folder_id = folderId;
+    } else if (folderUuid === 'root') {
+      where.folder_id = null;
+    }
+
+    if (!search && folderUuid === undefined) {
+      where.folder_id = null;
+    }
+
+    if (search) {
+      delete where.folder_id;
+      where.name = { [Op.iLike]: `%${search}%` };
+    }
+
+    if (type) {
+      if (type.includes('/')) {
+        where.mime_type = type;
+      } else {
+        where.mime_type = { [Op.iLike]: `${type}%` };
+      }
+    }
+
+    if (isStarred) {
+      where.is_starred = true;
+      // If viewing starred items, we usually ignore folder hierarchy unless specified?
+      // For now, let's say "Starred" view shows all starred items flat.
+      if (!folderUuid) {
+        delete where.folder_id;
+      }
+    }
+
+    let orderClause: any = [['created_at', 'DESC']];
+    if (sort) {
+      const fieldMap = {
+        name: 'name',
+        size: 'size',
+        date: 'created_at',
+      };
+      const field = fieldMap[sort] || 'created_at';
+      orderClause = [[field, order]];
     }
 
     return this.fileModel.findAll({
-      where: {
-        user_id: user.id,
-        folder_id: folderId,
-      },
+      where,
       paranoid: !isTrashed,
-      order: [['created_at', 'DESC']],
+      order: orderClause,
     });
   }
 
@@ -259,6 +309,11 @@ export class FileService {
   async getDownloadStream(uuid: string, user: UserEntity) {
     const file = await this.findOne(uuid, user);
     return this.storageService.download(file.storage_path);
+  }
+
+  async toggleStar(uuid: string, user: UserEntity) {
+    const file = await this.findOne(uuid, user);
+    return file.update({ is_starred: !file.is_starred });
   }
 
   async getSignedUrl(uuid: string, user: UserEntity) {

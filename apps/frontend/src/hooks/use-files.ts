@@ -17,16 +17,43 @@ export interface FileItem {
 }
 
 export function useFiles(folderUuid?: string | null, isTrashed = false) {
+  const { searchQuery, sortBy, sortOrder, filterType, isStarred } = useDriveStore();
+
   const params = new URLSearchParams();
   if (folderUuid) params.set('folderUuid', folderUuid);
   if (isTrashed) params.set('isTrashed', 'true');
+  if (isStarred) params.set('isStarred', 'true');
+  if (searchQuery) params.set('search', searchQuery);
+  if (filterType) params.set('type', filterType);
+  params.set('sort', sortBy);
+  params.set('order', sortOrder);
 
   return useQuery<FileItem[]>({
-    queryKey: ['files', folderUuid ?? 'root', isTrashed],
+    queryKey: [
+      'files',
+      folderUuid ?? 'root',
+      isTrashed,
+      isStarred,
+      searchQuery,
+      filterType,
+      sortBy,
+      sortOrder,
+    ],
     queryFn: async () => {
       const res = await api.get(`/files?${params.toString()}`);
       return res.data.data;
     },
+  });
+}
+
+export function useToggleStarFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (uuid: string) => {
+      const res = await api.post(`/files/${uuid}/toggle-star`);
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
   });
 }
 
