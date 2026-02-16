@@ -1,0 +1,409 @@
+
+> nx run backend:test --testFile=apps/backend/src/modules/file/file.controller.spec.ts
+
+> jest --passWithNoTests=true --testFile=apps/backend/src/modules/file/file.controller.spec.ts
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/commons/services/[22m[1maudit.service.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/storage/[22m[1mstorage.service.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/share/[22m[1mshare.service.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/folder/[22m[1mfolder.service.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/invitation/[22m[1minvitation.service.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/share/[22m[1mshare.controller.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/redis/[22m[1mredis.module.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/commons/guards/[22m[1mrate-limiter.guard.spec.ts[22m
+[32m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [32m    LOG[39m [38;5;3m[RateLimiterGuard] [39m[32mRate limiter initialized with Redis store[39m
+[32m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [32m    LOG[39m [38;5;3m[RateLimiterGuard] [39m[32mRate limiter initialized with Redis store[39m
+[33m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [33m   WARN[39m [38;5;3m[RateLimiterGuard] [39m[33mRate limiter error (allowing request): TypeError: this.client.multi is not a function[39m
+[32m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [32m    LOG[39m [38;5;3m[RateLimiterGuard] [39m[32mRate limiter initialized with Redis store[39m
+[33m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [33m   WARN[39m [38;5;3m[RateLimiterGuard] [39m[33mRate limiter error (allowing request): TypeError: this.client.multi is not a function[39m
+[33m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [33m   WARN[39m [38;5;3m[RateLimiterGuard] [39m[33mRate limiter error (allowing request): TypeError: this.client.multi is not a function[39m
+[32m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [32m    LOG[39m [38;5;3m[RateLimiterGuard] [39m[32mRate limiter initialized with Redis store[39m
+[33m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [33m   WARN[39m [38;5;3m[RateLimiterGuard] [39m[33mRate limiter error (allowing request): TypeError: this.client.multi is not a function[39m
+[32m[Nest] 29227  - [39m02/16/2026, 3:39:53 PM [32m    LOG[39m [38;5;3m[RateLimiterGuard] [39m[32mRate limiter initialized with Redis store[39m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/auth/[22m[1mauth.service.spec.ts[22m
+[31m[Nest] 29199  - [39m02/16/2026, 3:39:53 PM [31m  ERROR[39m [38;5;3m[FileService] [39m[31mUpload error: Folder not found[39m
+NotFoundException: Folder not found
+    at FileService.upload (/Users/mac/comet/node-fullstack-boilerplate/apps/backend/src/modules/file/file.service.ts:37:17)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at Object.<anonymous> (/Users/mac/comet/node-fullstack-boilerplate/apps/backend/src/modules/file/file.service.spec.ts:148:7)
+[31m[Nest] 29199  - [39m02/16/2026, 3:39:53 PM [31m  ERROR[39m [38;5;3m[FileService] [39m[31mFailed to add file test.txt to zip: input source must be valid Stream or Buffer instance[39m
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/file/[22m[1mfile.service.spec.ts[22m
+[1m[31m  [1m● [22m[1mFileService › trash/restore › should soft delete file[39m[22m
+
+    [2mexpect([22m[31mjest.fn()[39m[2m).[22mtoHaveBeenCalled[2m()[22m
+
+    Expected number of calls: >= [32m1[39m
+    Received number of calls:    [31m0[39m
+[2m[22m
+[2m    [0m [90m 183 |[39m       mockFileModel[33m.[39mfindOne[33m.[39mmockResolvedValueOnce(mockFileInstance)[33m;[39m[22m
+[2m     [90m 184 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m service[33m.[39mtrash(mockFileInstance[33m.[39muuid[33m,[39m mockUser)[33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 185 |[39m       expect(mockFileInstance[33m.[39msave)[33m.[39mtoHaveBeenCalled()[33m;[39m[22m
+[2m     [90m     |[39m                                     [31m[1m^[22m[2m[39m[22m
+[2m     [90m 186 |[39m       expect(mockFileInstance[33m.[39mdeleted_at)[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m[22m
+[2m     [90m 187 |[39m     })[33m;[39m[22m
+[2m     [90m 188 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.toHaveBeenCalled ([22m[2m[0m[36msrc/modules/file/file.service.spec.ts[39m[0m[2m:185:37)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileService › trash/restore › should restore file[39m[22m
+
+    [2mexpect([22m[31mjest.fn()[39m[2m).[22mtoHaveBeenCalled[2m()[22m
+
+    Expected number of calls: >= [32m1[39m
+    Received number of calls:    [31m0[39m
+[2m[22m
+[2m    [0m [90m 191 |[39m       mockFileModel[33m.[39mfindOne[33m.[39mmockResolvedValueOnce(trashedFile)[33m;[39m[22m
+[2m     [90m 192 |[39m       [36mawait[39m service[33m.[39mrestore(mockFileInstance[33m.[39muuid[33m,[39m mockUser)[33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 193 |[39m       expect(trashedFile[33m.[39msave)[33m.[39mtoHaveBeenCalled()[33m;[39m[22m
+[2m     [90m     |[39m                                [31m[1m^[22m[2m[39m[22m
+[2m     [90m 194 |[39m       expect(trashedFile[33m.[39mdeleted_at)[33m.[39mtoBeNull()[33m;[39m[22m
+[2m     [90m 195 |[39m     })[33m;[39m[22m
+[2m     [90m 196 |[39m   })[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.toHaveBeenCalled ([22m[2m[0m[36msrc/modules/file/file.service.spec.ts[39m[0m[2m:193:32)[22m[2m[22m
+
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [0m[7m[37m backend [39m[27m[0m [2msrc/modules/file/[22m[1mfile.controller.spec.ts[22m
+[1m[31m  [1m● [22m[1mFileController › should be defined[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › upload › should upload a file[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › findAll › should return files[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › downloadZip › should stream zip[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › download › should pipe file stream[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › trash › should move file to trash[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › restore › should restore file from trash[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mFileController › deletePermanently › should permanently delete file[39m[22m
+
+    Nest can't resolve dependencies of the JwtAuthGuard (Reflector, ?, SessionService, UserEntityRepository). Please make sure that the argument TokenService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If TokenService is a provider, is it part of the current RootTestModule?
+    - If TokenService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing TokenService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+[2m[22m
+[2m    [0m [90m 28 |[39m[22m
+[2m     [90m 29 |[39m   beforeEach([36masync[39m () [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m     [36mconst[39m module[33m:[39m [33mTestingModule[39m [33m=[39m [36mawait[39m [33mTest[39m[33m.[39mcreateTestingModule({[22m
+[2m     [90m    |[39m                                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       controllers[33m:[39m [[33mFileController[39m][33m,[39m[22m
+[2m     [90m 32 |[39m       providers[33m:[39m [[22m
+[2m     [90m 33 |[39m         {[0m[22m
+[2m[22m
+[2m      [2mat TestingInjector.lookupComponentInParentModules ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:286:19)[22m[2m[22m
+[2m      [2mat TestingInjector.resolveComponentWrapper ([22m[2m../../node_modules/@nestjs/testing/testing-injector.js[2m:19:45)[22m[2m[22m
+[2m      [2mat resolveParam ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:140:38)[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInjector.resolveConstructorParams ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:169:27)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInstance ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:75:13)[22m[2m[22m
+[2m      [2mat TestingInjector.loadInjectable ([22m[2m../../node_modules/@nestjs/core/injector/injector.js[2m:99:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:80:13[22m[2m[22m
+[2m          at async Promise.all (index 0)[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfInjectables ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:79:9)[22m[2m[22m
+[2m      [2mat [22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:41:13[22m[2m[22m
+[2m          at async Promise.all (index 1)[22m
+[2m      [2mat TestingInstanceLoader.createInstances ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:39:9)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/core/injector/instance-loader.js[2m:22:13)[22m[2m[22m
+[2m      [2mat TestingInstanceLoader.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-instance-loader.js[2m:9:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.createInstancesOfDependencies ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:118:9)[22m[2m[22m
+[2m      [2mat TestingModuleBuilder.compile ([22m[2m../../node_modules/@nestjs/testing/testing-module.builder.js[2m:74:9)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/modules/file/file.controller.spec.ts[39m[0m[2m:30:35)[22m[2m[22m
+
+[1mTest Suites: [22m[1m[31m2 failed[39m[22m, [1m[32m9 passed[39m[22m, 11 total
+[1mTests:       [22m[1m[31m10 failed[39m[22m, [1m[32m60 passed[39m[22m, 70 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        5.268 s
+[2mRan all test suites[22m[2m.[22m
+Warning: command "jest --passWithNoTests=true --testFile=apps/backend/src/modules/file/file.controller.spec.ts" exited with non-zero status code
+
+
+ NX   Running target test for project backend failed
+
+Failed tasks:
+
+- backend:test
+
+Hint: run the command with --verbose for more details.
+
