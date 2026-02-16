@@ -34,6 +34,14 @@ export class ShareController {
     return new SuccessResponse('Share info retrieved', share);
   }
 
+  @Get('shared-with-me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List files shared with the current user' })
+  async getSharedWithMe(@Request() req: any) {
+    const result = await this.shareService.findSharedWith(req.user);
+    return new SuccessResponse('Shared files retrieved successfully', result);
+  }
+
   @Get('public/:token')
   @Public() // Bypass Auth Guard
   @ApiOperation({ summary: 'Get shared file info by token (public)' })

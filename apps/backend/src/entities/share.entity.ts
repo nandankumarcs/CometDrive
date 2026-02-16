@@ -55,6 +55,17 @@ export class Share extends BaseEntity {
   @BelongsTo(() => UserEntity)
   declare creator: UserEntity;
 
+  @ForeignKey(() => UserEntity)
+  @Column({
+    field: 'recipient_id',
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  declare recipient_id: number | null;
+
+  @BelongsTo(() => UserEntity, 'recipient_id')
+  declare recipient: UserEntity | null;
+
   @Column({
     field: 'is_active',
     type: DataType.BOOLEAN,

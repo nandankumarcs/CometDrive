@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HardDrive, Trash2, Cloud, Star } from 'lucide-react';
+import { HardDrive, Trash2, Cloud, Star, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 
 const navItems = [
   { name: 'My Drive', href: '/drive', icon: HardDrive, exact: true },
+  { name: 'Shared with Me', href: '/drive/shared-with-me', icon: Users, exact: false },
   { name: 'Starred', href: '/drive/starred', icon: Star, exact: false },
   { name: 'Trash', href: '/drive/trash', icon: Trash2, exact: false },
 ];

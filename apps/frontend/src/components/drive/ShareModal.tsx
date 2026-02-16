@@ -17,10 +17,12 @@ export function ShareModal() {
   const createShare = useCreateShare();
   const revokeShare = useRevokeShare();
 
+  const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setEmail('');
       setCopied(false);
     }
   }, [isOpen]);
@@ -30,9 +32,9 @@ export function ShareModal() {
   // URL generation
   const shareUrl = share ? `${window.location.origin}/share/${share.token}` : '';
 
-  const handleCreate = async () => {
+  const handleCreate = async (recipientEmail?: string) => {
     if (!fileUuid) return;
-    await createShare.mutateAsync({ fileUuid });
+    await createShare.mutateAsync({ fileUuid, recipientEmail });
     refetch(); // Ensure we get the new share
   };
 
@@ -129,23 +131,40 @@ export function ShareModal() {
                 <div className="w-12 h-12 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <LinkIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                 </div>
-                <h4 className="text-gray-900 dark:text-white font-medium mb-1">
-                  Create a public link
-                </h4>
+                <h4 className="text-gray-900 dark:text-white font-medium mb-1">Share this file</h4>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
-                  Generate a unique URL to share this file with anyone.
+                  Enter an email to share privately, or create a public link.
                 </p>
-                <button
-                  onClick={handleCreate}
-                  disabled={createShare.isPending}
-                  className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
-                >
-                  {createShare.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Create Link'
-                  )}
-                </button>
+
+                <div className="mb-4 text-left">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Share with email (optional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCreate()}
+                    disabled={createShare.isPending}
+                    className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+                  >
+                    Public Link
+                  </button>
+                  <button
+                    onClick={() => handleCreate(email)}
+                    disabled={createShare.isPending || !email}
+                    className="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
+                  >
+                    {createShare.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Share'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
