@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShareController } from './share.controller';
 import { ShareService } from './share.service';
-import { UserEntity } from '../../entities/user.entity';
+import { SuccessResponse } from '../../commons/dtos/success-response.dto';
 
 const mockShareService = {
   create: jest.fn(),
@@ -39,12 +39,13 @@ describe('ShareController', () => {
     it('should create a share', async () => {
       const dto = { fileId: 'file-uuid' };
       const req = { user: { id: 1 } };
-      mockShareService.create.mockResolvedValue({ token: 'token' });
+      const share = { token: 'token' };
+      mockShareService.create.mockResolvedValue(share);
 
-      const result = await controller.create(dto, req);
+      const result = await controller.create(req, dto);
 
       expect(mockShareService.create).toHaveBeenCalledWith(req.user, dto);
-      expect(result).toEqual({ data: { token: 'token' } });
+      expect(result).toEqual(new SuccessResponse('Share link created successfully', share));
     });
   });
 
@@ -57,18 +58,21 @@ describe('ShareController', () => {
       const result = await controller.getSharedWithMe(req);
 
       expect(mockShareService.findSharedWith).toHaveBeenCalledWith(req.user);
-      expect(result).toEqual({ data: sharedFiles });
+      expect(result).toEqual(
+        new SuccessResponse('Shared files retrieved successfully', sharedFiles),
+      );
     });
   });
 
-  describe('delete', () => {
+  describe('revoke', () => {
     it('should revoke a share', async () => {
       const fileUuid = 'file-uuid';
       const req = { user: { id: 1 } };
 
-      await controller.delete(fileUuid, req);
+      const result = await controller.revoke(req, fileUuid);
 
       expect(mockShareService.revoke).toHaveBeenCalledWith(req.user, fileUuid);
+      expect(result).toEqual(new SuccessResponse('Share link revoked successfully'));
     });
   });
 });
