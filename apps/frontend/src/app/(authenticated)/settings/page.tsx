@@ -5,6 +5,18 @@ import { useAuthStore } from '../../../store/auth.store';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const { theme, setTheme } = useTheme();
@@ -16,6 +28,10 @@ export default function SettingsPage() {
   }, []);
 
   if (!mounted) return null;
+
+  const storageUsed = user?.organization ? parseInt(user.organization.storage_used) : 0;
+  const maxStorage = user?.organization ? parseInt(user.organization.max_storage) : 0;
+  const storagePercent = maxStorage > 0 ? (storageUsed / maxStorage) * 100 : 0;
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -115,14 +131,14 @@ export default function SettingsPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                12.5 GB used of 15 GB
+                {formatBytes(storageUsed)} used of {formatBytes(maxStorage)}
               </span>
-              <span className="text-sm text-gray-500">83%</span>
+              <span className="text-sm text-gray-500">{Math.round(storagePercent)}%</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-6">
               <div
                 className="bg-primary-600 h-2.5 rounded-full transition-all duration-500"
-                style={{ width: '83%' }}
+                style={{ width: `${Math.min(storagePercent, 100)}%` }}
               ></div>
             </div>
             <button className="text-primary-600 dark:text-primary-400 text-sm font-medium hover:underline flex items-center">

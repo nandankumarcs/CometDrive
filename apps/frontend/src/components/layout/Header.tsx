@@ -4,6 +4,18 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 export function Header() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
@@ -84,18 +96,38 @@ export function Header() {
               </div>
 
               {/* Storage Widget */}
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  <span>Storage</span>
-                  <span>83% used</span>
+              {user?.organization && (
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Storage</span>
+                    <span>
+                      {Math.round(
+                        (parseInt(user.organization.storage_used) /
+                          parseInt(user.organization.max_storage)) *
+                          100,
+                      )}
+                      % used
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
+                    <div
+                      className="bg-primary-500 h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.min(
+                          (parseInt(user.organization.storage_used) /
+                            parseInt(user.organization.max_storage)) *
+                            100,
+                          100,
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 text-right">
+                    {formatBytes(parseInt(user.organization.storage_used))} of{' '}
+                    {formatBytes(parseInt(user.organization.max_storage))}
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
-                  <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: '83%' }}></div>
-                </div>
-                <div className="text-xs text-gray-400 dark:text-gray-500 text-right">
-                  12.5 GB of 15 GB
-                </div>
-              </div>
+              )}
 
               <Link
                 href="/settings"
