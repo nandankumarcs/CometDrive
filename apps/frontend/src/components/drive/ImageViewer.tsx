@@ -17,6 +17,8 @@ import {
   FlipVertical,
   Maximize,
   Minimize,
+  Pause,
+  Play,
   RotateCcw,
   RotateCw,
   Scan,
@@ -41,6 +43,7 @@ const MAX_ZOOM = 6;
 const ZOOM_STEP = 0.2;
 const PAN_STEP = 40;
 const ZOOM_PRESETS = [25, 50, 100, 200, 400] as const;
+const SLIDESHOW_SPEEDS = [1000, 2000, 3000, 5000] as const;
 
 function clampZoom(value: number) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
@@ -65,6 +68,9 @@ export function ImageViewer({
   const [dragging, setDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [isSlideshowPlaying, setIsSlideshowPlaying] = useState(false);
+  const [slideshowSpeedMs, setSlideshowSpeedMs] = useState<(typeof SLIDESHOW_SPEEDS)[number]>(3000);
+  const [slideshowDirection, setSlideshowDirection] = useState<'next' | 'prev' | null>(null);
 
   const resetView = useCallback(() => {
     setZoom(1);
@@ -163,6 +169,42 @@ export function ImageViewer({
       console.error('Failed to toggle fullscreen:', error);
     }
   }, []);
+
+  const toggleSlideshow = useCallback(() => {
+    if (isSlideshowPlaying) {
+      setIsSlideshowPlaying(false);
+      setSlideshowDirection(null);
+      return;
+    }
+
+    const nextDirection: 'next' | 'prev' | null =
+      hasNext && onNext ? 'next' : hasPrev && onPrev ? 'prev' : null;
+    if (!nextDirection) return;
+
+    setSlideshowDirection(nextDirection);
+    setIsSlideshowPlaying(true);
+  }, [hasNext, hasPrev, isSlideshowPlaying, onNext, onPrev]);
+
+  useEffect(() => {
+    if (!isSlideshowPlaying || !slideshowDirection) return;
+
+    const intervalId = window.setInterval(() => {
+      if (slideshowDirection === 'next') {
+        if (hasNext && onNext) {
+          onNext();
+          return;
+        }
+      } else if (hasPrev && onPrev) {
+        onPrev();
+        return;
+      }
+
+      setIsSlideshowPlaying(false);
+      setSlideshowDirection(null);
+    }, slideshowSpeedMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [hasNext, hasPrev, isSlideshowPlaying, onNext, onPrev, slideshowDirection, slideshowSpeedMs]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -267,6 +309,10 @@ export function ImageViewer({
           event.preventDefault();
           setFlipVertical((prev) => !prev);
           break;
+        case 's':
+          event.preventDefault();
+          toggleSlideshow();
+          break;
         case 'arrowleft':
           if (hasPrev && onPrev) {
             event.preventDefault();
@@ -307,6 +353,7 @@ export function ImageViewer({
     resetView,
     rotateLeft,
     rotateRight,
+    toggleSlideshow,
     toggleFullscreen,
     zoomIn,
     zoomOut,
@@ -330,11 +377,14 @@ export function ImageViewer({
       data-flip-vertical={String(flipVertical)}
       data-pan-x={Math.round(pan.x)}
       data-pan-y={Math.round(pan.y)}
+      data-slideshow-playing={String(isSlideshowPlaying)}
+      data-slideshow-speed={String(slideshowSpeedMs)}
       className="relative w-full h-full bg-black/40 rounded-xl overflow-hidden border border-white/10"
     >
       <div className="absolute top-3 left-3 z-20 px-3 py-1.5 rounded-full bg-black/55 text-white text-xs">
         {Math.round(zoom * 100)}%
         {naturalSize.width > 0 ? ` • ${naturalSize.width}×${naturalSize.height}` : ''}
+        {isSlideshowPlaying ? ` • slideshow ${slideshowSpeedMs / 1000}s` : ''}
       </div>
 
       {(hasPrev || hasNext) && (
@@ -419,6 +469,38 @@ export function ImageViewer({
           >
             <ZoomIn className="h-4 w-4" />
           </button>
+          <span className="w-px h-6 bg-white/20 mx-1" />
+          <button
+            type="button"
+            data-testid="image-slideshow-toggle"
+            onClick={toggleSlideshow}
+            className={`p-2 rounded-md transition-colors ${
+              isSlideshowPlaying ? 'bg-white/30 hover:bg-white/35' : 'hover:bg-white/15'
+            }`}
+            title="Toggle slideshow (S)"
+            aria-label="Toggle slideshow"
+          >
+            {isSlideshowPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+          <select
+            data-testid="image-slideshow-speed"
+            value={String(slideshowSpeedMs)}
+            onChange={(event) => {
+              const nextSpeed = Number(event.target.value);
+              if (SLIDESHOW_SPEEDS.includes(nextSpeed as (typeof SLIDESHOW_SPEEDS)[number])) {
+                setSlideshowSpeedMs(nextSpeed as (typeof SLIDESHOW_SPEEDS)[number]);
+              }
+            }}
+            className="h-8 px-2 rounded-md bg-black/40 border border-white/20 text-xs text-white focus:outline-none"
+            title="Slideshow speed"
+            aria-label="Slideshow speed"
+          >
+            {SLIDESHOW_SPEEDS.map((speedMs) => (
+              <option key={speedMs} value={String(speedMs)}>
+                {speedMs / 1000}s
+              </option>
+            ))}
+          </select>
           <div className="flex items-center gap-1 px-1">
             {ZOOM_PRESETS.map((preset) => (
               <button
