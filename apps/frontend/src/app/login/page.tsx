@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '../../schemas/auth.schema';
@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Cloud, Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -144,5 +144,19 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSharedWithMe } from '../../../../hooks/use-share';
-import { Loader2, Folder, File as FileIcon, Clock, Users } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { DriveItem } from '../../../../components/drive/DriveItem';
 
 export default function SharedWithMePage() {
@@ -36,15 +36,7 @@ export default function SharedWithMePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {shares.map((share: any) => (
           <div key={share.id} className="relative group">
-            <DriveItem
-              item={{
-                ...share.file,
-                // Add shared context
-                sharedBy: share.creator,
-                sharedAt: share.created_at,
-              }}
-              viewMode="grid" // Force grid for now, or respect generic view mode
-            />
+            <DriveItem {...share.file} isSelected={false} />
             <div className="absolute top-2 right-2 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-xs px-2 py-1 rounded-full shadow-sm z-10 flex items-center gap-1">
               <Users className="w-3 h-3" />
               <span>{share.creator.first_name}</span>

@@ -5,6 +5,7 @@ import { X, Download, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
 import { useDownloadFile } from '../../hooks/use-files';
 import api from '../../lib/api';
+import { VideoPlayer } from './VideoPlayer';
 
 export function FilePreviewModal() {
   const { previewItem, closePreview } = useDriveStore();
@@ -104,12 +105,7 @@ export function FilePreviewModal() {
     }
 
     if (mimeType.startsWith('video/')) {
-      return (
-        <video controls autoPlay className="max-w-full max-h-[85vh] shadow-2xl rounded-sm">
-          <source src={signedUrl} type={mimeType} />
-          Your browser does not support the video tag.
-        </video>
-      );
+      return <VideoPlayer src={signedUrl} mimeType={mimeType} autoPlay />;
     }
 
     if (mimeType.startsWith('audio/')) {

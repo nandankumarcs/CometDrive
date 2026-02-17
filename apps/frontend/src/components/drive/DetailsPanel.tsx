@@ -1,7 +1,5 @@
 import { X, FileText, Folder, Database, Type } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
-import { useFolders } from '../../hooks/use-folders';
-import { useFiles } from '../../hooks/use-files';
 
 export function DetailsPanel() {
   const { selectedItems, currentFolderUuid, showDetails, toggleDetails } = useDriveStore();
@@ -103,17 +101,6 @@ function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; val
     </div>
   );
 }
-
-const formatDate = (dateString?: string) => {
-  if (!dateString) return '-';
-  return new Date(dateString).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
