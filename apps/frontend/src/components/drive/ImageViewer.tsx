@@ -40,6 +40,7 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 6;
 const ZOOM_STEP = 0.2;
 const PAN_STEP = 40;
+const ZOOM_PRESETS = [25, 50, 100, 200, 400] as const;
 
 function clampZoom(value: number) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
@@ -85,15 +86,56 @@ export function ImageViewer({
     setPan({ x: 0, y: 0 });
   }, []);
 
-  const zoomIn = useCallback(() => {
-    setFitMode('actual');
-    setZoom((prev) => clampZoom(prev + ZOOM_STEP));
-  }, []);
+  const zoomTo = useCallback(
+    (nextZoom: number, anchor?: { clientX: number; clientY: number }) => {
+      const boundedZoom = clampZoom(nextZoom);
+      const shouldAnchor = fitMode === 'actual';
+      setFitMode('actual');
+      setZoom((prevZoom) => {
+        if (!containerRef.current || !shouldAnchor || boundedZoom === prevZoom) {
+          return boundedZoom;
+        }
 
-  const zoomOut = useCallback(() => {
-    setFitMode('actual');
-    setZoom((prev) => clampZoom(prev - ZOOM_STEP));
-  }, []);
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const anchorX = anchor?.clientX ?? centerX;
+        const anchorY = anchor?.clientY ?? centerY;
+
+        setPan((prevPan) => {
+          const relativeX = anchorX - centerX;
+          const relativeY = anchorY - centerY;
+          return {
+            x: relativeX - ((relativeX - prevPan.x) / prevZoom) * boundedZoom,
+            y: relativeY - ((relativeY - prevPan.y) / prevZoom) * boundedZoom,
+          };
+        });
+        return boundedZoom;
+      });
+    },
+    [fitMode],
+  );
+
+  const zoomIn = useCallback(
+    (anchor?: { clientX: number; clientY: number }) => {
+      zoomTo(zoom + ZOOM_STEP, anchor);
+    },
+    [zoom, zoomTo],
+  );
+
+  const zoomOut = useCallback(
+    (anchor?: { clientX: number; clientY: number }) => {
+      zoomTo(zoom - ZOOM_STEP, anchor);
+    },
+    [zoom, zoomTo],
+  );
+
+  const applyZoomPreset = useCallback(
+    (preset: (typeof ZOOM_PRESETS)[number]) => {
+      zoomTo(preset / 100);
+    },
+    [zoomTo],
+  );
 
   const nudgePan = useCallback((dx: number, dy: number) => {
     setFitMode('actual');
@@ -131,11 +173,19 @@ export function ImageViewer({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const handleWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setFitMode('actual');
-    setZoom((prev) => clampZoom(prev + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)));
-  }, []);
+  const handleWheel = useCallback(
+    (event: ReactWheelEvent<HTMLDivElement>) => {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      if (event.deltaY < 0) {
+        zoomIn({ clientX: event.clientX, clientY: event.clientY });
+        return;
+      }
+      zoomOut({ clientX: event.clientX, clientY: event.clientY });
+    },
+    [zoomIn, zoomOut],
+  );
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -278,6 +328,8 @@ export function ImageViewer({
       data-rotation={rotation}
       data-flip-horizontal={String(flipHorizontal)}
       data-flip-vertical={String(flipVertical)}
+      data-pan-x={Math.round(pan.x)}
+      data-pan-y={Math.round(pan.y)}
       className="relative w-full h-full bg-black/40 rounded-xl overflow-hidden border border-white/10"
     >
       <div className="absolute top-3 left-3 z-20 px-3 py-1.5 rounded-full bg-black/55 text-white text-xs">
@@ -315,6 +367,7 @@ export function ImageViewer({
       )}
 
       <div
+        data-testid="image-canvas"
         className={`w-full h-full flex items-center justify-center p-6 sm:p-8 select-none ${cursorClass}`}
         style={{ touchAction: 'none' }}
         onWheel={handleWheel}
@@ -366,6 +419,23 @@ export function ImageViewer({
           >
             <ZoomIn className="h-4 w-4" />
           </button>
+          <div className="flex items-center gap-1 px-1">
+            {ZOOM_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                data-testid={`image-zoom-preset-${preset}`}
+                onClick={() => applyZoomPreset(preset)}
+                className={`px-2 py-1 text-[11px] rounded-md transition-colors ${
+                  Math.round(zoom * 100) === preset ? 'bg-white/30' : 'hover:bg-white/15'
+                }`}
+                title={`Set zoom to ${preset}%`}
+                aria-label={`Set zoom to ${preset}%`}
+              >
+                {preset}%
+              </button>
+            ))}
+          </div>
           <span className="w-px h-6 bg-white/20 mx-1" />
           <button
             type="button"

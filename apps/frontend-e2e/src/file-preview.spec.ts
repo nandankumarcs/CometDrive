@@ -139,8 +139,34 @@ test.describe('File Preview Feature', () => {
       await expect(imageViewer).toBeVisible({ timeout: 15000 });
       await expect(imageViewer).toHaveAttribute('data-zoom', '100');
 
-      await page.getByTestId('image-zoom-in').click();
+      await page.getByTestId('image-zoom-preset-200').click();
+      await expect(imageViewer).toHaveAttribute('data-zoom', '200');
+
+      await page.getByTestId('image-zoom-preset-25').click();
+      await expect(imageViewer).toHaveAttribute('data-zoom', '25');
+
+      await page.getByTestId('image-reset').click();
+      await expect(imageViewer).toHaveAttribute('data-zoom', '100');
+      await page.getByTestId('image-actual-size').click();
+
+      await page.getByTestId('image-canvas').evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        element.dispatchEvent(
+          new WheelEvent('wheel', {
+            deltaY: -120,
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + 20,
+            clientY: rect.top + 20,
+          }),
+        );
+      });
       await expect(imageViewer).toHaveAttribute('data-zoom', '120');
+
+      const panX = Number(await imageViewer.getAttribute('data-pan-x'));
+      const panY = Number(await imageViewer.getAttribute('data-pan-y'));
+      expect(Math.abs(panX)).toBeGreaterThan(0);
+      expect(Math.abs(panY)).toBeGreaterThan(0);
 
       await page.getByTestId('image-rotate-right').click();
       await expect(imageViewer).toHaveAttribute('data-rotation', '90');

@@ -22,8 +22,8 @@ This document tracks the image-viewer scope so we can implement and test in phas
 ## Phase 2 (Next)
 
 - [ ] Minimap navigator for large zoomed images
-- [ ] Smooth zoom-to-cursor behavior
-- [ ] Zoom presets (25/50/100/200/400%)
+- [x] Smooth zoom-to-cursor behavior
+- [x] Zoom presets (25/50/100/200/400%)
 - [ ] Slideshow mode (play/pause, speed)
 - [ ] Touch gestures (pinch, swipe)
 - [ ] Better keyboard help overlay
