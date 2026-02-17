@@ -3,16 +3,39 @@
 import { useEffect, useState } from 'react';
 import { X, Download, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
-import { useDownloadFile } from '../../hooks/use-files';
+import { useFiles, useDownloadFile } from '../../hooks/use-files';
 import api from '../../lib/api';
 import { VideoPlayer } from './VideoPlayer';
 
 export function FilePreviewModal() {
-  const { previewItem, closePreview } = useDriveStore();
+  const { previewItem, closePreview, currentFolderUuid, openPreview } = useDriveStore();
+  const { data: files } = useFiles(currentFolderUuid);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
+
+  // Playlist Logic
+  const videoFiles = files?.filter((f) => f.mime_type.startsWith('video/')) || [];
+  const currentVideoIndex = previewItem
+    ? videoFiles.findIndex((f) => f.uuid === previewItem.uuid)
+    : -1;
+  const hasNext = currentVideoIndex !== -1 && currentVideoIndex < videoFiles.length - 1;
+  const hasPrev = currentVideoIndex > 0;
+
+  const handleNext = () => {
+    if (hasNext) {
+      const nextFile = videoFiles[currentVideoIndex + 1];
+      openPreview({ uuid: nextFile.uuid, name: nextFile.name, mimeType: nextFile.mime_type });
+    }
+  };
+
+  const handlePrev = () => {
+    if (hasPrev) {
+      const prevFile = videoFiles[currentVideoIndex - 1];
+      openPreview({ uuid: prevFile.uuid, name: prevFile.name, mimeType: prevFile.mime_type });
+    }
+  };
 
   const downloadFile = useDownloadFile();
 
@@ -105,7 +128,17 @@ export function FilePreviewModal() {
     }
 
     if (mimeType.startsWith('video/')) {
-      return <VideoPlayer src={signedUrl} mimeType={mimeType} autoPlay />;
+      return (
+        <VideoPlayer
+          src={signedUrl}
+          mimeType={mimeType}
+          autoPlay
+          onNext={handleNext}
+          onPrev={handlePrev}
+          hasNext={hasNext}
+          hasPrev={hasPrev}
+        />
+      );
     }
 
     if (mimeType.startsWith('audio/')) {

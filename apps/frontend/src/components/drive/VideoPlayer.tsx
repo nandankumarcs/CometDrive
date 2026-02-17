@@ -16,6 +16,8 @@ import {
   HelpCircle,
   AlertTriangle,
   X,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 
 interface VideoPlayerProps {
@@ -23,9 +25,22 @@ interface VideoPlayerProps {
   mimeType: string;
   poster?: string;
   autoPlay?: boolean;
+  onNext?: () => void;
+  onPrev?: () => void;
+  hasNext?: boolean;
+  hasPrev?: boolean;
 }
 
-export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPlayerProps) {
+export function VideoPlayer({
+  src,
+  mimeType,
+  poster,
+  autoPlay = false,
+  onNext,
+  onPrev,
+  hasNext,
+  hasPrev,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -142,6 +157,18 @@ export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPl
           e.preventDefault();
           adjustVolume(-0.1);
           break;
+        case 'N':
+          if (e.shiftKey && onNext) {
+            e.preventDefault();
+            onNext();
+          }
+          break;
+        case 'P':
+          if (e.shiftKey && onPrev) {
+            e.preventDefault();
+            onPrev();
+          }
+          break;
         case '?':
         case '/':
           e.preventDefault();
@@ -161,7 +188,7 @@ export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPl
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, playing, showControls, duration, showHelp]);
+  }, [togglePlay, playing, showControls, duration, showHelp, onNext, onPrev]);
 
   // Handle Video Events
   useEffect(() => {
@@ -182,7 +209,9 @@ export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPl
     const onCanPlay = () => setLoading(false);
     const onEnded = () => {
       setPlaying(false);
-      // Clear progress on end? Maybe keeps it for replay.
+      if (onNext && autoPlay) {
+        onNext();
+      }
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
@@ -476,6 +505,10 @@ export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPl
                 <span className="font-mono bg-white/10 px-2 py-0.5 rounded">← / →</span>
               </div>
               <div className="flex justify-between border-b border-white/5 pb-2">
+                <span>Next / Prev Video</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded">Shift + N / P</span>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-2">
                 <span>Volume -/+</span>
                 <span className="font-mono bg-white/10 px-2 py-0.5 rounded">↓ / ↑</span>
               </div>
@@ -546,12 +579,34 @@ export function VideoPlayer({ src, mimeType, poster, autoPlay = false }: VideoPl
 
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center space-x-4">
+            <button
+              onClick={onPrev}
+              disabled={!hasPrev}
+              className={`transition-colors ${
+                hasPrev ? 'hover:text-primary-400' : 'opacity-50 cursor-not-allowed'
+              }`}
+              title="Previous (Shift+P)"
+            >
+              <SkipBack className="w-5 h-5 fill-current" />
+            </button>
+
             <button onClick={togglePlay} className="hover:text-primary-400 transition-colors">
               {playing ? (
                 <Pause className="w-6 h-6 fill-current" />
               ) : (
                 <Play className="w-6 h-6 fill-current" />
               )}
+            </button>
+
+            <button
+              onClick={onNext}
+              disabled={!hasNext}
+              className={`transition-colors ${
+                hasNext ? 'hover:text-primary-400' : 'opacity-50 cursor-not-allowed'
+              }`}
+              title="Next (Shift+N)"
+            >
+              <SkipForward className="w-5 h-5 fill-current" />
             </button>
 
             <div className="group/vol flex items-center space-x-2">
