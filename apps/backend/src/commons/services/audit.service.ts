@@ -37,4 +37,18 @@ export class AuditService {
       this.logger.error(`Failed to create audit log for action "${action}": ${error}`);
     }
   }
+
+  async findAll(
+    userId: number,
+    limit = 20,
+    offset = 0,
+  ): Promise<{ rows: AuditLogEntity[]; count: number }> {
+    return this.auditLogModel.findAndCountAll({
+      where: { user_id: userId },
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [UserEntity],
+    });
+  }
 }

@@ -215,7 +215,21 @@ export class FileService {
     const file = await this.findOne(uuid, user);
     await file.destroy();
 
-    await this.auditService.log('FILE_TRASH', user, {}, file.id, 'file');
+    const folderUuid = file.folder ? file.folder.uuid : file.folder_id ? 'root' : null;
+    // Retrieve folder uuid if not eager loaded or handle null
+    // Ideally we should eager load folder in findOne or just fetch it here
+    const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
+
+    await this.auditService.log(
+      'FILE_TRASH',
+      user,
+      {
+        folderUuid: folder?.uuid || 'root',
+        name: file.name,
+      },
+      file.id,
+      'file',
+    );
 
     return file;
   }
@@ -232,7 +246,18 @@ export class FileService {
 
     await file.restore();
 
-    await this.auditService.log('FILE_RESTORE', user, {}, file.id, 'file');
+    const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
+
+    await this.auditService.log(
+      'FILE_RESTORE',
+      user,
+      {
+        folderUuid: folder?.uuid || 'root',
+        name: file.name,
+      },
+      file.id,
+      'file',
+    );
 
     return file;
   }
@@ -261,7 +286,19 @@ export class FileService {
       await organization.decrement('storage_used', { by: file.size });
     }
 
-    await this.auditService.log('FILE_DELETE_PERMANENT', user, { storagePath }, fileId, 'file');
+    const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
+
+    await this.auditService.log(
+      'FILE_DELETE_PERMANENT',
+      user,
+      {
+        storagePath,
+        folderUuid: folder?.uuid || 'root',
+        name: file.name,
+      },
+      fileId,
+      'file',
+    );
 
     return { success: true };
   }
