@@ -107,40 +107,59 @@ test.describe('File Preview Feature', () => {
     fs.rmSync(txtPath, { force: true });
   });
 
-  test('should preview image file via context menu', async ({ page }) => {
-    // Create dummy SVG
+  test('should support rich image viewer controls and image navigation', async ({ page }) => {
     const uniqueId = Date.now();
-    const filename = `preview-test-${uniqueId}.svg`;
-    const svgPath = path.join(__dirname, filename);
+    const filePrefix = `preview-image-${uniqueId}`;
+    const firstName = `${filePrefix}-a.svg`;
+    const secondName = `${filePrefix}-b.svg`;
+    const firstPath = path.join(__dirname, firstName);
+    const secondPath = path.join(__dirname, secondName);
+
     fs.writeFileSync(
-      svgPath,
-      '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red" /></svg>',
+      firstPath,
+      '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="red" /></svg>',
+    );
+    fs.writeFileSync(
+      secondPath,
+      '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="blue" /></svg>',
     );
 
-    // Upload
-    await uploadFileViaApi(page, svgPath, 'image/svg+xml');
-    await page.reload();
-    await waitForDriveReady(page);
-    const fileItem = await waitForFileRow(page, filename);
+    try {
+      await uploadFileViaApi(page, firstPath, 'image/svg+xml');
+      await uploadFileViaApi(page, secondPath, 'image/svg+xml');
+      await page.reload();
+      await waitForDriveReady(page);
 
-    // Open context menu
-    await fileItem.hover();
-    await fileItem.locator('[data-testid="drive-item-menu"]').click();
+      await page.locator('input[placeholder="Search in Drive..."]').fill(filePrefix);
+      const firstFile = await waitForFileRow(page, firstName);
+      await firstFile.dblclick();
 
-    // Click Preview
-    await page.click('button:has-text("Preview")');
+      await expect(page.locator(`h2:has-text("${firstName}")`)).toBeVisible({ timeout: 10000 });
+      const imageViewer = page.getByTestId('image-viewer');
+      await expect(imageViewer).toBeVisible({ timeout: 15000 });
+      await expect(imageViewer).toHaveAttribute('data-zoom', '100');
 
-    // Verify modal
-    await expect(page.locator(`h2:has-text("${filename}")`)).toBeVisible({ timeout: 10000 });
-    // Check for img tag
-    const img = page.locator('div[class*="fixed"] img');
-    await expect(img).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('image-zoom-in').click();
+      await expect(imageViewer).toHaveAttribute('data-zoom', '120');
 
-    // Close
-    await page.click('button[title="Close"]');
+      await page.getByTestId('image-rotate-right').click();
+      await expect(imageViewer).toHaveAttribute('data-rotation', '90');
 
-    // Cleanup
-    fs.rmSync(svgPath, { force: true });
+      await page.getByTestId('image-flip-horizontal').click();
+      await expect(imageViewer).toHaveAttribute('data-flip-horizontal', 'true');
+
+      await page.getByTestId('image-reset').click();
+      await expect(imageViewer).toHaveAttribute('data-zoom', '100');
+      await expect(imageViewer).toHaveAttribute('data-rotation', '0');
+      await expect(imageViewer).toHaveAttribute('data-flip-horizontal', 'false');
+
+      await expect(page.getByTestId('image-prev')).toBeVisible();
+      await page.getByTestId('image-prev').click();
+      await expect(page.locator(`h2:has-text("${secondName}")`)).toBeVisible({ timeout: 10000 });
+    } finally {
+      fs.rmSync(firstPath, { force: true });
+      fs.rmSync(secondPath, { force: true });
+    }
   });
 
   test('should show continue watching card and resume from saved progress', async ({ page }) => {

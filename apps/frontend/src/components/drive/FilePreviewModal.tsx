@@ -8,6 +8,7 @@ import { usePlaybackProgress, useUpdatePlaybackProgress } from '../../hooks/use-
 import api from '../../lib/api';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoCommentsPanel } from './VideoCommentsPanel';
+import { ImageViewer } from './ImageViewer';
 
 export function FilePreviewModal() {
   const { previewItem, closePreview, currentFolderUuid, openPreview } = useDriveStore();
@@ -20,27 +21,49 @@ export function FilePreviewModal() {
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
   const { mutate: updatePlaybackProgress } = useUpdatePlaybackProgress();
 
-  // Playlist Logic
+  // Playlist Logic (Video)
   const videoFiles = files?.filter((f) => f.mime_type.startsWith('video/')) || [];
   const currentVideoIndex = previewItem
     ? videoFiles.findIndex((f) => f.uuid === previewItem.uuid)
     : -1;
-  const hasNext = currentVideoIndex !== -1 && currentVideoIndex < videoFiles.length - 1;
-  const hasPrev = currentVideoIndex > 0;
+  const hasNextVideo = currentVideoIndex !== -1 && currentVideoIndex < videoFiles.length - 1;
+  const hasPrevVideo = currentVideoIndex > 0;
 
   const handleNext = useCallback(() => {
-    if (hasNext) {
+    if (hasNextVideo) {
       const nextFile = videoFiles[currentVideoIndex + 1];
       openPreview({ uuid: nextFile.uuid, name: nextFile.name, mimeType: nextFile.mime_type });
     }
-  }, [currentVideoIndex, hasNext, openPreview, videoFiles]);
+  }, [currentVideoIndex, hasNextVideo, openPreview, videoFiles]);
 
   const handlePrev = useCallback(() => {
-    if (hasPrev) {
+    if (hasPrevVideo) {
       const prevFile = videoFiles[currentVideoIndex - 1];
       openPreview({ uuid: prevFile.uuid, name: prevFile.name, mimeType: prevFile.mime_type });
     }
-  }, [currentVideoIndex, hasPrev, openPreview, videoFiles]);
+  }, [currentVideoIndex, hasPrevVideo, openPreview, videoFiles]);
+
+  // Playlist Logic (Image)
+  const imageFiles = files?.filter((f) => f.mime_type.startsWith('image/')) || [];
+  const currentImageIndex = previewItem
+    ? imageFiles.findIndex((f) => f.uuid === previewItem.uuid)
+    : -1;
+  const hasNextImage = currentImageIndex !== -1 && currentImageIndex < imageFiles.length - 1;
+  const hasPrevImage = currentImageIndex > 0;
+
+  const handleNextImage = useCallback(() => {
+    if (hasNextImage) {
+      const nextFile = imageFiles[currentImageIndex + 1];
+      openPreview({ uuid: nextFile.uuid, name: nextFile.name, mimeType: nextFile.mime_type });
+    }
+  }, [currentImageIndex, hasNextImage, imageFiles, openPreview]);
+
+  const handlePrevImage = useCallback(() => {
+    if (hasPrevImage) {
+      const prevFile = imageFiles[currentImageIndex - 1];
+      openPreview({ uuid: prevFile.uuid, name: prevFile.name, mimeType: prevFile.mime_type });
+    }
+  }, [currentImageIndex, hasPrevImage, imageFiles, openPreview]);
 
   const downloadFile = useDownloadFile();
   const isVideoPreview = !!previewItem && previewItem.mimeType.startsWith('video/');
@@ -145,11 +168,16 @@ export function FilePreviewModal() {
 
     if (mimeType.startsWith('image/')) {
       return (
-        <img
-          src={signedUrl}
-          alt={previewItem.name}
-          className="max-w-full max-h-[85vh] object-contain shadow-2xl rounded-sm"
-        />
+        <div className="w-full max-w-[1500px] h-full max-h-[85vh]">
+          <ImageViewer
+            src={signedUrl}
+            alt={previewItem.name}
+            hasNext={hasNextImage}
+            hasPrev={hasPrevImage}
+            onNext={handleNextImage}
+            onPrev={handlePrevImage}
+          />
+        </div>
       );
     }
 
@@ -168,8 +196,8 @@ export function FilePreviewModal() {
               onProgressSync={handleProgressSync}
               onNext={handleNext}
               onPrev={handlePrev}
-              hasNext={hasNext}
-              hasPrev={hasPrev}
+              hasNext={hasNextVideo}
+              hasPrev={hasPrevVideo}
             />
           </div>
           <div className="w-full lg:w-96 h-[45vh] lg:h-full">
