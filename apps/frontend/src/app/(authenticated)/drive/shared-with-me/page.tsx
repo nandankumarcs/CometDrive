@@ -36,10 +36,27 @@ export default function SharedWithMePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {shares.map((share: any) => (
           <div key={share.id} className="relative group">
-            <DriveItem {...share.file} isSelected={false} />
+            {(() => {
+              const resource = share.file ?? share.folder;
+              if (!resource) return null;
+              const isFile = !!share.file;
+              return (
+                <DriveItem
+                  uuid={resource.uuid}
+                  name={resource.name}
+                  type={isFile ? 'file' : 'folder'}
+                  mimeType={isFile ? share.file.mime_type : undefined}
+                  size={isFile ? share.file.size : undefined}
+                  updatedAt={resource.updated_at ?? resource.created_at}
+                  isSelected={false}
+                />
+              );
+            })()}
             <div className="absolute top-2 right-2 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-xs px-2 py-1 rounded-full shadow-sm z-10 flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{share.creator.first_name}</span>
+              <span>
+                {share.creator.first_name} · {share.permission === 'editor' ? 'Editor' : 'Viewer'}
+              </span>
             </div>
           </div>
         ))}

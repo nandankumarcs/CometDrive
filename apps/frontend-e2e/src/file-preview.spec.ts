@@ -218,4 +218,54 @@ test.describe('File Preview Feature', () => {
       fs.rmSync(target, { force: true });
     }
   });
+
+  test('should create timestamped comment, seek from comment, and delete comment', async ({
+    page,
+  }) => {
+    const { target, fileName } = createTempVideoFixture();
+
+    try {
+      await uploadFileViaApi(page, target, 'video/mp4');
+      await page.reload();
+      await waitForDriveReady(page);
+      const fileItem = await waitForFileRow(page, fileName);
+
+      await fileItem.dblclick();
+      await expect(page.locator(`h2:has-text("${fileName}")`)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('video-comments-panel')).toBeVisible({ timeout: 20000 });
+
+      await page.keyboard.press('l');
+      await page.keyboard.press('l');
+      await expect
+        .poll(async () => {
+          return await page.locator('video').evaluate((el) => (el as HTMLVideoElement).currentTime);
+        })
+        .toBeGreaterThan(8);
+
+      await page.getByTestId('video-comment-input').fill('Important detail here');
+      await page.getByTestId('video-comment-submit').click();
+      await expect(page.getByTestId('video-comment-item')).toContainText('Important detail here');
+
+      await page.locator('video').evaluate((el) => {
+        (el as HTMLVideoElement).currentTime = 0;
+      });
+      await expect
+        .poll(async () => {
+          return await page.locator('video').evaluate((el) => (el as HTMLVideoElement).currentTime);
+        })
+        .toBeLessThan(1);
+
+      await page.getByTestId('video-comment-timestamp').first().click();
+      await expect
+        .poll(async () => {
+          return await page.locator('video').evaluate((el) => (el as HTMLVideoElement).currentTime);
+        })
+        .toBeGreaterThan(8);
+
+      await page.getByTestId('video-comment-delete').first().click();
+      await expect(page.getByTestId('video-comment-item')).toHaveCount(0);
+    } finally {
+      fs.rmSync(target, { force: true });
+    }
+  });
 });

@@ -1,58 +1,84 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Loader2, Link as LinkIcon, Copy, Trash2, Check, UserPlus } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
-import { useCreateShare, useGetShare, useRevokeShare } from '../../hooks/use-share';
-import { Loader2, Link as LinkIcon, Copy, Trash2, Check } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
-// Fallback UI components if standard ones aren't available - usually passing props or using standard HTML/Tailwind
-// Checking DriveItem might reveal UI lib usage.
-// For now, I'll use standard Tailwind + HTML if I'm not sure about UI lib, or standard simple components.
-// Actually, let's make it self-contained with Tailwind to avoid dependency issues if Shadcn isn't fully set up.
+import {
+  type SharePermission,
+  type ShareResourceType,
+  useCreateShare,
+  useGetShares,
+  useRevokeShare,
+} from '../../hooks/use-share';
 
 export function ShareModal() {
   const { activeModal, contextItem, closeModal } = useDriveStore();
   const isOpen = activeModal === 'share';
-  const fileUuid = contextItem?.type === 'file' ? contextItem.uuid : null;
 
-  const { data: share, isLoading, refetch } = useGetShare(fileUuid || '', isOpen && !!fileUuid);
+  const resourceType: ShareResourceType | null =
+    contextItem?.type === 'file' || contextItem?.type === 'folder' ? contextItem.type : null;
+  const resourceUuid = contextItem?.uuid ?? null;
+
+  const { data: shares = [], isLoading } = useGetShares(
+    resourceType,
+    resourceUuid,
+    isOpen && !!resourceType && !!resourceUuid,
+  );
   const createShare = useCreateShare();
   const revokeShare = useRevokeShare();
 
   const [email, setEmail] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [permission, setPermission] = useState<SharePermission>('viewer');
+  const [copiedShareUuid, setCopiedShareUuid] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setEmail('');
-      setCopied(false);
+      setPermission('viewer');
+      setCopiedShareUuid(null);
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const { publicShare, privateShares } = useMemo(() => {
+    const publicShareItem = shares.find((share) => share.recipient_id === null) ?? null;
+    return {
+      publicShare: publicShareItem,
+      privateShares: shares.filter((share) => share.recipient_id !== null),
+    };
+  }, [shares]);
 
-  // URL generation
-  const shareUrl = share ? `${window.location.origin}/share/${share.token}` : '';
+  if (!isOpen || !resourceType || !resourceUuid) return null;
 
-  const handleCreate = async (recipientEmail?: string) => {
-    if (!fileUuid) return;
-    await createShare.mutateAsync({ fileUuid, recipientEmail });
-    refetch(); // Ensure we get the new share
+  const getShareUrl = (token: string) => `${window.location.origin}/share/${token}`;
+
+  const handleCreatePublic = async () => {
+    if (resourceType !== 'file') return;
+    await createShare.mutateAsync({ resourceType, resourceUuid });
   };
 
-  const handleRevoke = async () => {
-    if (!fileUuid) return;
-    await revokeShare.mutateAsync(fileUuid);
-    refetch();
+  const handleCreatePrivate = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+    await createShare.mutateAsync({
+      resourceType,
+      resourceUuid,
+      recipientEmail: trimmedEmail,
+      permission,
+    });
+    setEmail('');
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleRevoke = async (shareUuid: string) => {
+    await revokeShare.mutateAsync({ shareUuid, resourceType, resourceUuid });
+  };
+
+  const handleCopy = async (shareUuid: string, token: string) => {
+    await navigator.clipboard.writeText(getShareUrl(token));
+    setCopiedShareUuid(shareUuid);
+    setTimeout(() => setCopiedShareUuid(null), 2000);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -74,100 +100,135 @@ export function ShareModal() {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-                <Loader2 className="w-8 h-8 animate-spin mb-2 text-primary-500" />
-                <p>Loading share info...</p>
-              </div>
-            ) : share && share.is_active ? (
-              <div className="space-y-4">
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800/30">
-                  <p className="text-sm text-green-700 dark:text-green-400 font-medium flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    Link is active
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+              <Loader2 className="w-8 h-8 animate-spin mb-2 text-primary-500" />
+              <p>Loading shares...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                <div className="flex items-center gap-2 mb-3">
+                  <UserPlus className="w-4 h-4 text-primary-500" />
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    Share with a user
                   </p>
                 </div>
-
                 <div className="flex gap-2">
-                  <input
-                    readOnly
-                    value={shareUrl}
-                    className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none text-gray-600 dark:text-gray-300"
-                  />
-                  <button
-                    onClick={handleCopy}
-                    className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Anyone with this link can download this file.
-                  </p>
-                  <button
-                    onClick={handleRevoke}
-                    disabled={revokeShare.isPending}
-                    className="w-full py-2 flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    {revokeShare.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                    Revoke Link
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <LinkIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                </div>
-                <h4 className="text-gray-900 dark:text-white font-medium mb-1">Share this file</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
-                  Enter an email to share privately, or create a public link.
-                </p>
-
-                <div className="mb-4 text-left">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Share with email (optional)
-                  </label>
                   <input
                     type="email"
                     placeholder="user@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleCreate()}
-                    disabled={createShare.isPending}
-                    className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+                  <select
+                    value={permission}
+                    onChange={(e) => setPermission(e.target.value as SharePermission)}
+                    className="px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    Public Link
-                  </button>
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                  </select>
                   <button
-                    onClick={() => handleCreate(email)}
-                    disabled={createShare.isPending || !email}
-                    className="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
+                    onClick={handleCreatePrivate}
+                    disabled={createShare.isPending || !email.trim()}
+                    className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {createShare.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Share'}
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+
+              {resourceType === 'file' && (
+                <div className="space-y-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Public link</p>
+                  {publicShare ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={getShareUrl(publicShare.token)}
+                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none text-gray-600 dark:text-gray-300"
+                        />
+                        <button
+                          onClick={() => handleCopy(publicShare.uuid, publicShare.token)}
+                          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                        >
+                          {copiedShareUuid === publicShare.uuid ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Check className="w-4 h-4 text-green-500" />
+                              Copied
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <Copy className="w-4 h-4" />
+                              Copy
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleRevoke(publicShare.uuid)}
+                        className="text-sm text-red-600 hover:text-red-700 inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Revoke public link
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleCreatePublic}
+                      disabled={createShare.isPending}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      Create public link
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  People with access
+                </p>
+                {privateShares.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No private shares yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {privateShares.map((share) => (
+                      <div
+                        key={share.uuid}
+                        className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">
+                            {share.recipient
+                              ? `${share.recipient.first_name} ${share.recipient.last_name}`.trim()
+                              : 'Shared user'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {share.recipient?.email ?? 'Email unavailable'}
+                          </p>
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {share.permission === 'editor' ? 'Editor' : 'Viewer'}
+                        </span>
+                        <button
+                          onClick={() => handleRevoke(share.uuid)}
+                          disabled={revokeShare.isPending}
+                          className="text-sm text-red-600 hover:text-red-700 inline-flex items-center gap-1 disabled:opacity-60"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Revoke
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

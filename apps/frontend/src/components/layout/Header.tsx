@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -19,10 +20,12 @@ function formatBytes(bytes: number, decimals = 2) {
 export function Header() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
+    queryClient.clear();
     logout();
     router.push('/login');
   };

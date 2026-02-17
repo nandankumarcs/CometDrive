@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { FolderService } from './folder.service';
-import { FolderEntity } from '@src/entities';
+import { FolderEntity, Share } from '@src/entities';
 import { AuditService } from '@src/commons/services';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
@@ -11,6 +11,7 @@ describe('FolderService', () => {
   let auditService: AuditService;
 
   const mockUser = { id: 1, email: 'test@example.com' } as any;
+  const sharedRecipient = { id: 2, email: 'shared@example.com' } as any;
 
   const mockFolderInstance = {
     id: 1,
@@ -28,10 +29,15 @@ describe('FolderService', () => {
     create: jest.fn().mockResolvedValue(mockFolderInstance),
     findOne: jest.fn().mockResolvedValue(mockFolderInstance),
     findAll: jest.fn().mockResolvedValue([mockFolderInstance]),
+    findByPk: jest.fn(),
   };
 
   const mockAuditService = {
     log: jest.fn().mockResolvedValue(true),
+  };
+
+  const mockShareModel = {
+    findOne: jest.fn().mockResolvedValue(null),
   };
 
   beforeEach(async () => {
@@ -41,6 +47,10 @@ describe('FolderService', () => {
         {
           provide: getModelToken(FolderEntity),
           useValue: mockFolderModel,
+        },
+        {
+          provide: getModelToken(Share),
+          useValue: mockShareModel,
         },
         {
           provide: AuditService,
@@ -82,7 +92,7 @@ describe('FolderService', () => {
     it('should create a subfolder', async () => {
       const parentUuid = 'parent-uuid';
       const dto = { name: 'Subfolder', parentUuid };
-      const mockParent = { id: 2, uuid: parentUuid };
+      const mockParent = { id: 2, uuid: parentUuid, user_id: mockUser.id };
 
       mockFolderModel.findOne.mockResolvedValueOnce(mockParent);
 
@@ -99,6 +109,41 @@ describe('FolderService', () => {
       await expect(service.create({ name: 'Sub', parentUuid: 'bad' }, mockUser)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should reject shared viewer from creating in shared folder', async () => {
+      const parentUuid = 'parent-uuid';
+      const dto = { name: 'Subfolder', parentUuid };
+      const sharedParent = { id: 2, uuid: parentUuid, user_id: mockUser.id, parent_id: null };
+
+      mockFolderModel.findOne.mockResolvedValueOnce(sharedParent);
+      mockShareModel.findOne.mockResolvedValueOnce(null);
+      mockFolderModel.findByPk.mockResolvedValueOnce(null);
+
+      await expect(service.create(dto, sharedRecipient)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should allow shared editor to create in shared folder', async () => {
+      const parentUuid = 'parent-uuid';
+      const dto = { name: 'Subfolder', parentUuid };
+      const sharedParent = { id: 2, uuid: parentUuid, user_id: mockUser.id, parent_id: null };
+
+      mockFolderModel.findOne.mockResolvedValueOnce(sharedParent);
+      mockShareModel.findOne.mockResolvedValueOnce({
+        id: 10,
+        folder_id: sharedParent.id,
+        recipient_id: sharedRecipient.id,
+        permission: 'editor',
+        is_active: true,
+        expires_at: null,
+      });
+
+      await service.create(dto, sharedRecipient);
+      expect(model.create).toHaveBeenCalledWith({
+        name: dto.name,
+        user_id: mockUser.id,
+        parent_id: sharedParent.id,
+      });
     });
   });
 

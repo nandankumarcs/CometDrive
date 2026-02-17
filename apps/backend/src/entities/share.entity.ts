@@ -9,7 +9,13 @@ import {
 } from 'sequelize-typescript';
 import { UserEntity } from './user.entity';
 import { FileEntity } from './file.entity';
+import { FolderEntity } from './folder.entity';
 import { BaseEntity } from './base.entity';
+
+export enum SharePermission {
+  VIEWER = 'viewer',
+  EDITOR = 'editor',
+}
 
 @Table({
   tableName: 'share',
@@ -37,12 +43,23 @@ export class Share extends BaseEntity {
   @Column({
     field: 'file_id',
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: true,
   })
-  declare file_id: number;
+  declare file_id: number | null;
 
-  @BelongsTo(() => FileEntity)
-  declare file: FileEntity;
+  @BelongsTo(() => FileEntity, 'file_id')
+  declare file: FileEntity | null;
+
+  @ForeignKey(() => FolderEntity)
+  @Column({
+    field: 'folder_id',
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  declare folder_id: number | null;
+
+  @BelongsTo(() => FolderEntity, 'folder_id')
+  declare folder: FolderEntity | null;
 
   @ForeignKey(() => UserEntity)
   @Column({
@@ -52,7 +69,7 @@ export class Share extends BaseEntity {
   })
   declare created_by: number;
 
-  @BelongsTo(() => UserEntity)
+  @BelongsTo(() => UserEntity, 'created_by')
   declare creator: UserEntity;
 
   @ForeignKey(() => UserEntity)
@@ -72,6 +89,14 @@ export class Share extends BaseEntity {
     defaultValue: true,
   })
   declare is_active: boolean;
+
+  @Column({
+    field: 'permission',
+    type: DataType.ENUM(SharePermission.VIEWER, SharePermission.EDITOR),
+    allowNull: false,
+    defaultValue: SharePermission.VIEWER,
+  })
+  declare permission: SharePermission;
 
   @AllowNull(true)
   @Column({

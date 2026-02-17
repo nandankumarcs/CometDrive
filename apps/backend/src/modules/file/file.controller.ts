@@ -28,6 +28,7 @@ import { FileService } from './file.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { UpdatePlaybackProgressDto } from './dto/update-playback-progress.dto';
+import { CreateVideoCommentDto } from './dto/create-video-comment.dto';
 import { SuccessResponse } from '@src/commons/dtos';
 import { Response } from 'express';
 import * as fs from 'fs';
@@ -125,6 +126,35 @@ export class FileController {
     return new SuccessResponse('Playback progress dismissed successfully', result);
   }
 
+  @Get(':uuid/comments')
+  @ApiOperation({ summary: 'List comments for a video file' })
+  async listVideoComments(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.listVideoComments(uuid, req.user);
+    return new SuccessResponse('Comments retrieved successfully', result);
+  }
+
+  @Post(':uuid/comments')
+  @ApiOperation({ summary: 'Create a comment for a video file' })
+  async createVideoComment(
+    @Param('uuid') uuid: string,
+    @Request() req: any,
+    @Body() dto: CreateVideoCommentDto,
+  ) {
+    const result = await this.fileService.createVideoComment(uuid, req.user, dto);
+    return new SuccessResponse('Comment created successfully', result);
+  }
+
+  @Delete(':uuid/comments/:commentUuid')
+  @ApiOperation({ summary: 'Delete own comment from a video file' })
+  async deleteVideoComment(
+    @Param('uuid') uuid: string,
+    @Param('commentUuid') commentUuid: string,
+    @Request() req: any,
+  ) {
+    const result = await this.fileService.deleteVideoComment(uuid, commentUuid, req.user);
+    return new SuccessResponse('Comment deleted successfully', result);
+  }
+
   @Get(':uuid')
   @ApiOperation({ summary: 'Get file details' })
   async findOne(@Param('uuid') uuid: string, @Request() req: any) {
@@ -174,7 +204,7 @@ export class FileController {
   @Get(':uuid/download')
   @ApiOperation({ summary: 'Download file' })
   async download(@Param('uuid') uuid: string, @Request() req: any, @Res() res: Response) {
-    const file = await this.fileService.findOne(uuid, req.user);
+    const file = await this.fileService.findAccessible(uuid, req.user);
     const stream = await this.fileService.getDownloadStream(uuid, req.user);
 
     res.set({
@@ -188,7 +218,7 @@ export class FileController {
   @Get(':uuid/content')
   @ApiOperation({ summary: 'View file content (inline)' })
   async content(@Param('uuid') uuid: string, @Request() req: any, @Res() res: Response) {
-    const file = await this.fileService.findOne(uuid, req.user);
+    const file = await this.fileService.findAccessible(uuid, req.user);
 
     if (file.storage_provider === 'local') {
       const filePath = path.resolve('uploads', file.storage_path);

@@ -9,6 +9,7 @@ const mockFileService = {
   upload: jest.fn(),
   findAll: jest.fn(),
   findOne: jest.fn(),
+  findAccessible: jest.fn(),
   update: jest.fn(),
   downloadZip: jest.fn(),
   getDownloadStream: jest.fn(),
@@ -22,6 +23,9 @@ const mockFileService = {
   upsertPlaybackProgress: jest.fn(),
   getContinueWatching: jest.fn(),
   dismissPlaybackProgress: jest.fn(),
+  listVideoComments: jest.fn(),
+  createVideoComment: jest.fn(),
+  deleteVideoComment: jest.fn(),
 };
 
 const mockResponse = {
@@ -153,6 +157,46 @@ describe('FileController', () => {
     });
   });
 
+  describe('video comments', () => {
+    it('should list video comments', async () => {
+      const req = { user: { id: 1 } };
+      const payload = [{ uuid: 'comment-uuid', content: 'Nice moment' }];
+      mockFileService.listVideoComments.mockResolvedValue(payload);
+
+      const result = await controller.listVideoComments('file-uuid', req);
+
+      expect(mockFileService.listVideoComments).toHaveBeenCalledWith('file-uuid', req.user);
+      expect(result).toEqual(new SuccessResponse('Comments retrieved successfully', payload));
+    });
+
+    it('should create a video comment', async () => {
+      const req = { user: { id: 1 } };
+      const dto = { content: 'Great point', timestampSeconds: 22 };
+      const payload = { uuid: 'comment-uuid', ...dto };
+      mockFileService.createVideoComment.mockResolvedValue(payload);
+
+      const result = await controller.createVideoComment('file-uuid', req, dto);
+
+      expect(mockFileService.createVideoComment).toHaveBeenCalledWith('file-uuid', req.user, dto);
+      expect(result).toEqual(new SuccessResponse('Comment created successfully', payload));
+    });
+
+    it('should delete own video comment', async () => {
+      const req = { user: { id: 1 } };
+      const payload = { success: true };
+      mockFileService.deleteVideoComment.mockResolvedValue(payload);
+
+      const result = await controller.deleteVideoComment('file-uuid', 'comment-uuid', req);
+
+      expect(mockFileService.deleteVideoComment).toHaveBeenCalledWith(
+        'file-uuid',
+        'comment-uuid',
+        req.user,
+      );
+      expect(result).toEqual(new SuccessResponse('Comment deleted successfully', payload));
+    });
+  });
+
   describe('downloadZip', () => {
     it('should stream zip', async () => {
       const body = { uuids: ['uuid1'] };
@@ -176,12 +220,12 @@ describe('FileController', () => {
       const mockStream = { pipe: jest.fn() };
       const mockFile = { name: 'test.txt', mime_type: 'text/plain' };
 
-      mockFileService.findOne.mockResolvedValue(mockFile);
+      mockFileService.findAccessible.mockResolvedValue(mockFile);
       mockFileService.getDownloadStream.mockResolvedValue(mockStream);
 
       await controller.download(uuid, req, mockResponse);
 
-      expect(mockFileService.findOne).toHaveBeenCalledWith(uuid, req.user);
+      expect(mockFileService.findAccessible).toHaveBeenCalledWith(uuid, req.user);
       expect(mockFileService.getDownloadStream).toHaveBeenCalledWith(uuid, req.user);
       expect(mockResponse.set).toHaveBeenCalledWith({
         'Content-Type': 'text/plain',

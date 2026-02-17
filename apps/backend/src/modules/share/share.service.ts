@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Share } from '../../entities/share.entity';
-import { FileEntity } from '../../entities/file.entity'; // Updated import
-import { UserEntity } from '../../entities/user.entity'; // Updated import
+import { Op } from 'sequelize';
 import * as crypto from 'crypto';
+import { Share, SharePermission } from '../../entities/share.entity';
+import { FileEntity } from '../../entities/file.entity';
+import { FolderEntity } from '../../entities/folder.entity';
+import { UserEntity } from '../../entities/user.entity';
 import { CreateShareDto } from './dto/create-share.dto';
+
+type ResourceType = 'file' | 'folder';
 
 @Injectable()
 export class ShareService {
@@ -13,127 +17,158 @@ export class ShareService {
     private readonly shareModel: typeof Share,
     @InjectModel(FileEntity)
     private readonly fileModel: typeof FileEntity,
+    @InjectModel(FolderEntity)
+    private readonly folderModel: typeof FolderEntity,
     @InjectModel(UserEntity)
     private readonly userModel: typeof UserEntity,
   ) {}
 
-  /**
-   * Create a new share link for a file
-   */
   async create(user: any, createShareDto: CreateShareDto) {
-    // Check if file exists and belongs to user (or user has permission)
-    const file = await this.fileModel.findOne({
-      where: {
-        uuid: createShareDto.fileId,
-      },
-      include: [{ model: UserEntity, as: 'user' }],
-    });
-
-    if (!file) {
-      throw new NotFoundException('File not found');
+    const hasFileId = !!createShareDto.fileId;
+    const hasFolderId = !!createShareDto.folderId;
+    if ((hasFileId && hasFolderId) || (!hasFileId && !hasFolderId)) {
+      throw new BadRequestException('Provide either fileId or folderId');
     }
 
-    // Role check - only owner or admin can share
-    if (file.user_id !== user.id) {
-      if (user.userTypeId > 2) {
-        throw new NotFoundException('File not found or access denied');
-      }
+    const resourceType: ResourceType = hasFileId ? 'file' : 'folder';
+    const resourceUuid = (createShareDto.fileId ?? createShareDto.folderId)!;
+    const permission = createShareDto.permission ?? SharePermission.VIEWER;
+
+    if (resourceType === 'folder' && !createShareDto.recipientEmail?.trim()) {
+      throw new BadRequestException('Folder sharing requires recipientEmail');
     }
 
-    let recipientId: number | null = null;
-    if (createShareDto.recipientEmail) {
-      const recipient = await this.userModel.findOne({
-        where: { email: createShareDto.recipientEmail },
-      });
+    const resource = await this.getOwnedResource(resourceType, resourceUuid, user);
+    const recipientId = await this.resolveRecipientId(createShareDto.recipientEmail);
 
-      if (!recipient) {
-        throw new NotFoundException(`User with email ${createShareDto.recipientEmail} not found`);
-      }
-      recipientId = recipient.id;
+    if (!recipientId && permission === SharePermission.EDITOR) {
+      throw new BadRequestException('Public shares can only be viewer permission');
     }
 
-    // Check if active share already exists for this file created by this user
-    // If recipient is specified, check for existing share for that recipient
     const whereClause: any = {
-      file_id: file.id,
       created_by: user.id,
       is_active: true,
+      recipient_id: recipientId ?? null,
+      file_id: null,
+      folder_id: null,
     };
-
-    if (recipientId) {
-      whereClause.recipient_id = recipientId;
+    if (resource.type === 'file') {
+      whereClause.file_id = resource.id;
     } else {
-      whereClause.recipient_id = null; // Public link
+      whereClause.folder_id = resource.id;
     }
 
-    const existingShare = await this.shareModel.findOne({
-      where: whereClause,
-    });
-
+    const existingShare = await this.shareModel.findOne({ where: whereClause });
     if (existingShare) {
-      // If we are sharing with the same person again, likely we want to return the existing share
-      // Or maybe extend expiration? For MVP, return existing.
+      existingShare.permission = permission;
+      if (createShareDto.expiresAt !== undefined) {
+        existingShare.expires_at = createShareDto.expiresAt;
+      }
+      await existingShare.save();
       return existingShare;
     }
 
-    // Create new share
     const token = crypto.randomBytes(5).toString('hex');
-
-    return await this.shareModel.create({
+    return this.shareModel.create({
       token,
-      file_id: file.id,
+      file_id: resource.type === 'file' ? resource.id : null,
+      folder_id: resource.type === 'folder' ? resource.id : null,
       created_by: user.id,
       recipient_id: recipientId,
       expires_at: createShareDto.expiresAt,
       is_active: true,
+      permission,
     });
   }
 
-  /**
-   * Revoke a share link
-   */
+  // Legacy endpoint support: revoke all file shares created by user.
   async revoke(user: UserEntity, fileUuid: string) {
-    // Need to resolve file UUID to ID first
-    const file = await this.fileModel.findOne({ where: { uuid: fileUuid } });
-
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
-    // Revoke all shares for this file created by this user?
-    // Or mostly just the public one?
-    // For MVP, revoke ALL shares for this file by this user to be safe
-    // Or we should allow revoking specific shares.
-    // Given the current UI has one "Revoke" button, we revoke all.
-
+    const file = await this.getOwnedResource('file', fileUuid, user);
     await this.shareModel.update(
       { is_active: false },
-      {
-        where: {
-          file_id: file.id,
-          created_by: user.id,
-          is_active: true,
-        },
-      },
+      { where: { file_id: file.id, created_by: user.id, is_active: true } },
     );
-
     return { success: true };
   }
 
-  /**
-   * Get share info by token (Public access)
-   */
+  async revokeByShareUuid(user: UserEntity, shareUuid: string) {
+    const share = await this.shareModel.findOne({
+      where: {
+        uuid: shareUuid,
+        created_by: user.id,
+        is_active: true,
+      },
+    });
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    share.is_active = false;
+    await share.save();
+    return { success: true };
+  }
+
+  // Legacy endpoint support: returns one active share for a file.
+  async getShareByFile(user: UserEntity, fileUuid: string) {
+    const shares = await this.getSharesByResource(user, 'file', fileUuid);
+    const publicShare = shares.find((share) => share.recipient_id === null);
+    return publicShare ?? shares[0] ?? null;
+  }
+
+  async getShareByFolder(user: UserEntity, folderUuid: string) {
+    const shares = await this.getSharesByResource(user, 'folder', folderUuid);
+    return shares[0] ?? null;
+  }
+
+  async getSharesByResource(user: UserEntity, resourceType: ResourceType, resourceUuid: string) {
+    const resource = await this.getOwnedResource(resourceType, resourceUuid, user);
+    const whereClause: any = {
+      created_by: user.id,
+      is_active: true,
+      file_id: null,
+      folder_id: null,
+    };
+
+    if (resource.type === 'file') {
+      whereClause.file_id = resource.id;
+    } else {
+      whereClause.folder_id = resource.id;
+    }
+
+    return this.shareModel.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: UserEntity,
+          as: 'recipient',
+          attributes: ['uuid', 'first_name', 'last_name', 'email'],
+          required: false,
+        },
+      ],
+      order: [['created_at', 'DESC']],
+    });
+  }
+
   async findOneByToken(token: string) {
     const share = await this.shareModel.findOne({
       where: {
         token,
         is_active: true,
+        recipient_id: null,
       },
       include: [
         {
           model: FileEntity,
           as: 'file',
           attributes: ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'],
+          required: false,
+        },
+        {
+          model: FolderEntity,
+          as: 'folder',
+          attributes: ['uuid', 'name', 'created_at', 'updated_at'],
+          required: false,
         },
         {
           model: UserEntity,
@@ -153,60 +188,29 @@ export class ShareService {
       throw new NotFoundException('Link expired');
     }
 
-    // Increment view count
     share.increment('views');
-
     return share;
   }
 
-  /**
-   * Get active public share for a file (User internal check)
-   * This is used by the frontend to show the "Link is active" state.
-   * Modifying to prefer public link if exists, or return any active share.
-   */
-  async getShareByFile(user: UserEntity, fileUuid: string) {
-    const file = await this.fileModel.findOne({ where: { uuid: fileUuid } });
-
-    if (!file) {
-      return null;
-    }
-
-    // Prefer public link (recipient_id is null)
-    const publicShare = await this.shareModel.findOne({
-      where: {
-        file_id: file.id,
-        created_by: user.id,
-        is_active: true,
-        recipient_id: null,
-      },
-    });
-
-    if (publicShare) return publicShare;
-
-    // Otherwise return any active share (maybe shared with specific user)
-    return this.shareModel.findOne({
-      where: {
-        file_id: file.id,
-        created_by: user.id,
-        is_active: true,
-      },
-    });
-  }
-
-  /**
-   * Find files shared with the current user
-   */
   async findSharedWith(user: UserEntity) {
     return this.shareModel.findAll({
       where: {
         recipient_id: user.id,
         is_active: true,
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
       },
       include: [
         {
           model: FileEntity,
           as: 'file',
           attributes: ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'],
+          required: false,
+        },
+        {
+          model: FolderEntity,
+          as: 'folder',
+          attributes: ['uuid', 'name', 'created_at', 'updated_at'],
+          required: false,
         },
         {
           model: UserEntity,
@@ -216,5 +220,43 @@ export class ShareService {
       ],
       order: [['created_at', 'DESC']],
     });
+  }
+
+  private async resolveRecipientId(email?: string) {
+    if (!email?.trim()) {
+      return null;
+    }
+
+    const recipient = await this.userModel.findOne({
+      where: { email: email.trim().toLowerCase() },
+    });
+    if (!recipient) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return recipient.id;
+  }
+
+  private async getOwnedResource(resourceType: ResourceType, resourceUuid: string, user: any) {
+    if (resourceType === 'file') {
+      const file = await this.fileModel.findOne({ where: { uuid: resourceUuid } });
+      if (!file) {
+        throw new NotFoundException('File not found');
+      }
+      this.ensureSharePermission(file.user_id, user);
+      return { type: 'file' as const, id: file.id };
+    }
+
+    const folder = await this.folderModel.findOne({ where: { uuid: resourceUuid } });
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+    this.ensureSharePermission(folder.user_id, user);
+    return { type: 'folder' as const, id: folder.id };
+  }
+
+  private ensureSharePermission(ownerUserId: number, user: any) {
+    if (ownerUserId !== user.id && user.userTypeId > 2) {
+      throw new NotFoundException('Resource not found or access denied');
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { FolderEntity, UserEntity } from '@src/entities';
+import { FolderEntity, Share, SharePermission, UserEntity } from '@src/entities';
 import { Op } from 'sequelize';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -11,26 +11,25 @@ export class FolderService {
   constructor(
     @InjectModel(FolderEntity)
     private readonly folderModel: typeof FolderEntity,
+    @InjectModel(Share)
+    private readonly shareModel: typeof Share,
     private readonly auditService: AuditService,
   ) {}
 
   async create(createFolderDto: CreateFolderDto, user: UserEntity) {
     const { name, parentUuid } = createFolderDto;
     let parentId: number | null = null;
+    let ownerId = user.id;
 
     if (parentUuid) {
-      const parent = await this.folderModel.findOne({
-        where: { uuid: parentUuid, user_id: user.id },
-      });
-      if (!parent) {
-        throw new NotFoundException('Parent folder not found');
-      }
+      const parent = await this.findEditableFolder(parentUuid, user);
       parentId = parent.id;
+      ownerId = parent.user_id;
     }
 
     const folder = await this.folderModel.create({
       name,
-      user_id: user.id,
+      user_id: ownerId,
       parent_id: parentId,
     });
 
@@ -48,22 +47,17 @@ export class FolderService {
     order: 'ASC' | 'DESC' = 'ASC',
     isStarred = false,
   ) {
-    let parentId: number | null = null;
-    const where: any = {
-      user_id: user.id,
-    };
+    const where: any = {};
 
     if (parentUuid && parentUuid !== 'root') {
-      const parent = await this.folderModel.findOne({
-        where: { uuid: parentUuid, user_id: user.id },
-      });
-      if (!parent) {
-        throw new NotFoundException('Parent folder not found');
-      }
-      parentId = parent.id;
-      where.parent_id = parentId;
+      const parent = await this.findAccessibleFolder(parentUuid, user);
+      where.user_id = parent.user_id;
+      where.parent_id = parent.id;
     } else if (parentUuid === 'root') {
+      where.user_id = user.id;
       where.parent_id = null;
+    } else {
+      where.user_id = user.id;
     }
 
     if (!search && parentUuid === undefined) {
@@ -71,7 +65,9 @@ export class FolderService {
     }
 
     if (search) {
-      delete where.parent_id;
+      if (!parentUuid) {
+        delete where.parent_id;
+      }
       where.name = { [Op.iLike]: `%${search}%` };
     }
 
@@ -100,19 +96,11 @@ export class FolderService {
   }
 
   async findOne(uuid: string, user: UserEntity) {
-    const folder = await this.folderModel.findOne({
-      where: { uuid, user_id: user.id },
-    });
-
-    if (!folder) {
-      throw new NotFoundException('Folder not found');
-    }
-
-    return folder;
+    return this.findAccessibleFolder(uuid, user);
   }
 
   async update(uuid: string, updateFolderDto: UpdateFolderDto, user: UserEntity) {
-    const folder = await this.findOne(uuid, user);
+    const folder = await this.findEditableFolder(uuid, user);
     const { name, parentUuid } = updateFolderDto;
 
     if (name) {
@@ -121,18 +109,17 @@ export class FolderService {
 
     if (parentUuid !== undefined) {
       if (parentUuid === null) {
+        if (folder.user_id !== user.id) {
+          throw new NotFoundException('Parent folder not found');
+        }
         folder.parent_id = null;
       } else {
         if (parentUuid === uuid) {
           throw new BadRequestException('Folder cannot be its own parent');
         }
-        const parent = await this.folderModel.findOne({
-          where: { uuid: parentUuid, user_id: user.id },
-        });
-        if (!parent) {
-          throw new NotFoundException('Parent folder not found');
-        }
+        const parent = await this.findEditableFolder(parentUuid, user);
         folder.parent_id = parent.id;
+        folder.user_id = parent.user_id;
       }
     }
 
@@ -150,7 +137,7 @@ export class FolderService {
   }
 
   async trash(uuid: string, user: UserEntity) {
-    const folder = await this.findOne(uuid, user);
+    const folder = await this.findEditableFolder(uuid, user);
     await folder.destroy(); // Soft delete due to paranoid: true
 
     await this.auditService.log('FOLDER_TRASH', user, {}, folder.id, 'folder');
@@ -221,7 +208,7 @@ export class FolderService {
   }
 
   async toggleStar(uuid: string, user: UserEntity) {
-    const folder = await this.findOne(uuid, user);
+    const folder = await this.findOwnedFolder(uuid, user);
     return folder.update({ is_starred: !folder.is_starred });
   }
 
@@ -252,5 +239,93 @@ export class FolderService {
     // Let's standardise: results will comprise the folders.
     // Frontend usually has "My Drive" -> ...folders
     return results || [];
+  }
+
+  private async findOwnedFolder(uuid: string, user: UserEntity) {
+    const folder = await this.folderModel.findOne({
+      where: { uuid, user_id: user.id },
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    return folder;
+  }
+
+  private async findAccessibleFolder(uuid: string, user: UserEntity) {
+    const folder = await this.folderModel.findOne({
+      where: { uuid },
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    if (folder.user_id !== user.id) {
+      const hasAccess = await this.hasSharedFolderAccess(folder.id, user.id);
+      if (!hasAccess) {
+        throw new NotFoundException('Folder not found');
+      }
+    }
+
+    return folder;
+  }
+
+  private async findEditableFolder(uuid: string, user: UserEntity) {
+    const folder = await this.folderModel.findOne({
+      where: { uuid },
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    if (folder.user_id !== user.id) {
+      const hasAccess = await this.hasSharedFolderAccess(
+        folder.id,
+        user.id,
+        SharePermission.EDITOR,
+      );
+      if (!hasAccess) {
+        throw new NotFoundException('Folder not found');
+      }
+    }
+
+    return folder;
+  }
+
+  private async hasSharedFolderAccess(
+    folderId: number,
+    recipientId: number,
+    requiredPermission: SharePermission = SharePermission.VIEWER,
+  ) {
+    let currentFolderId: number | null = folderId;
+
+    while (currentFolderId) {
+      const activeShare = await this.shareModel.findOne({
+        where: {
+          folder_id: currentFolderId,
+          recipient_id: recipientId,
+          is_active: true,
+          ...(requiredPermission === SharePermission.EDITOR
+            ? { permission: SharePermission.EDITOR }
+            : {}),
+          [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
+        },
+      });
+
+      if (activeShare) {
+        return true;
+      }
+
+      const currentFolder = await this.folderModel.findByPk(currentFolderId, {
+        attributes: ['id', 'parent_id'],
+      });
+
+      currentFolderId = currentFolder?.parent_id ?? null;
+    }
+
+    return false;
   }
 }

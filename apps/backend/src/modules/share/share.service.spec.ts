@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShareService } from './share.service';
 import { getModelToken } from '@nestjs/sequelize';
-import { Share } from '../../entities/share.entity';
+import { Share, SharePermission } from '../../entities/share.entity';
 import { FileEntity } from '../../entities/file.entity';
+import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 const mockShareModel = {
   create: jest.fn(),
@@ -18,6 +19,10 @@ const mockFileModel = {
 };
 
 const mockUserModel = {
+  findOne: jest.fn(),
+};
+
+const mockFolderModel = {
   findOne: jest.fn(),
 };
 
@@ -35,6 +40,10 @@ describe('ShareService', () => {
         {
           provide: getModelToken(FileEntity),
           useValue: mockFileModel,
+        },
+        {
+          provide: getModelToken(FolderEntity),
+          useValue: mockFolderModel,
         },
         {
           provide: getModelToken(UserEntity),
@@ -72,9 +81,11 @@ describe('ShareService', () => {
       expect(mockShareModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           file_id: 1,
+          folder_id: null,
           created_by: 1,
           recipient_id: null,
           is_active: true,
+          permission: SharePermission.VIEWER,
         }),
       );
       expect(result).toEqual({ token: 'new-token' });
@@ -98,7 +109,36 @@ describe('ShareService', () => {
       });
       expect(mockShareModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          file_id: 1,
+          folder_id: null,
           recipient_id: 2,
+          permission: SharePermission.VIEWER,
+        }),
+      );
+    });
+
+    it('should create a private editor share', async () => {
+      const user = { id: 1, userTypeId: 1 } as UserEntity;
+      const recipient = { id: 2, email: 'recipient@test.com' } as UserEntity;
+      const file = { id: 1, user_id: 1, uuid: 'file-uuid' } as FileEntity;
+      const dto = {
+        fileId: 'file-uuid',
+        recipientEmail: 'recipient@test.com',
+        permission: SharePermission.EDITOR,
+      };
+
+      mockFileModel.findOne.mockResolvedValue(file);
+      mockUserModel.findOne.mockResolvedValue(recipient);
+      mockShareModel.findOne.mockResolvedValue(null);
+      mockShareModel.create.mockResolvedValue({ token: 'private-token', recipient_id: 2 });
+
+      await service.create(user, dto);
+
+      expect(mockShareModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file_id: 1,
+          recipient_id: 2,
+          permission: SharePermission.EDITOR,
         }),
       );
     });
@@ -113,6 +153,41 @@ describe('ShareService', () => {
 
       await expect(service.create(user, dto)).rejects.toThrow(NotFoundException);
     });
+
+    it('should reject editor permission for public share', async () => {
+      const user = { id: 1, userTypeId: 1 } as UserEntity;
+      const file = { id: 1, user_id: 1, uuid: 'file-uuid' } as FileEntity;
+      const dto = { fileId: 'file-uuid', permission: SharePermission.EDITOR };
+
+      mockFileModel.findOne.mockResolvedValue(file);
+
+      await expect(service.create(user, dto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update permission when active share already exists', async () => {
+      const user = { id: 1, userTypeId: 1 } as UserEntity;
+      const recipient = { id: 2, email: 'recipient@test.com' } as UserEntity;
+      const file = { id: 1, user_id: 1, uuid: 'file-uuid' } as FileEntity;
+      const save = jest.fn();
+      const existingShare = {
+        permission: SharePermission.VIEWER,
+        save,
+      };
+
+      mockFileModel.findOne.mockResolvedValue(file);
+      mockUserModel.findOne.mockResolvedValue(recipient);
+      mockShareModel.findOne.mockResolvedValue(existingShare);
+
+      const result = await service.create(user, {
+        fileId: 'file-uuid',
+        recipientEmail: 'recipient@test.com',
+        permission: SharePermission.EDITOR,
+      });
+
+      expect(existingShare.permission).toBe(SharePermission.EDITOR);
+      expect(save).toHaveBeenCalled();
+      expect(result).toBe(existingShare);
+    });
   });
 
   describe('findSharedWith', () => {
@@ -126,7 +201,7 @@ describe('ShareService', () => {
 
       expect(mockShareModel.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { recipient_id: 2, is_active: true },
+          where: expect.objectContaining({ recipient_id: 2, is_active: true }),
         }),
       );
       expect(result).toEqual(sharedFiles);
@@ -147,6 +222,23 @@ describe('ShareService', () => {
         { is_active: false },
         { where: { file_id: 1, created_by: 1, is_active: true } },
       );
+    });
+  });
+
+  describe('revokeByShareUuid', () => {
+    it('should revoke one specific share', async () => {
+      const user = { id: 1 } as UserEntity;
+      const save = jest.fn();
+      mockShareModel.findOne.mockResolvedValue({ uuid: 'share-uuid', is_active: true, save });
+
+      await service.revokeByShareUuid(user, 'share-uuid');
+
+      expect(mockShareModel.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { uuid: 'share-uuid', created_by: 1, is_active: true },
+        }),
+      );
+      expect(save).toHaveBeenCalled();
     });
   });
 });

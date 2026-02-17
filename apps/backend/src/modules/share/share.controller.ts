@@ -12,15 +12,23 @@ export class ShareController {
 
   @Post()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a share link for a file' })
+  @ApiOperation({ summary: 'Create a share for a file or folder' })
   async create(@Request() req: any, @Body() createShareDto: CreateShareDto) {
     const share = await this.shareService.create(req.user, createShareDto);
     return new SuccessResponse('Share link created successfully', share);
   }
 
+  @Delete(':shareUuid')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific share' })
+  async revokeByShareUuid(@Request() req: any, @Param('shareUuid') shareUuid: string) {
+    await this.shareService.revokeByShareUuid(req.user, shareUuid);
+    return new SuccessResponse('Share revoked successfully');
+  }
+
   @Delete('file/:fileUuid')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Revoke a share link for a file' })
+  @ApiOperation({ summary: 'Revoke all shares for a file (legacy)' })
   async revoke(@Request() req: any, @Param('fileUuid') fileUuid: string) {
     await this.shareService.revoke(req.user, fileUuid);
     return new SuccessResponse('Share link revoked successfully');
@@ -34,9 +42,33 @@ export class ShareController {
     return new SuccessResponse('Share info retrieved', share);
   }
 
+  @Get('folder/:folderUuid')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active share info for a folder (internal)' })
+  async getShareByFolder(@Request() req: any, @Param('folderUuid') folderUuid: string) {
+    const share = await this.shareService.getShareByFolder(req.user, folderUuid);
+    return new SuccessResponse('Share info retrieved', share);
+  }
+
+  @Get('resource/:resourceType/:resourceUuid')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List active shares for a resource (file or folder)' })
+  async getSharesByResource(
+    @Request() req: any,
+    @Param('resourceType') resourceType: 'file' | 'folder',
+    @Param('resourceUuid') resourceUuid: string,
+  ) {
+    const shares = await this.shareService.getSharesByResource(
+      req.user,
+      resourceType,
+      resourceUuid,
+    );
+    return new SuccessResponse('Shares retrieved successfully', shares);
+  }
+
   @Get('shared-with-me')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List files shared with the current user' })
+  @ApiOperation({ summary: 'List files/folders shared with the current user' })
   async getSharedWithMe(@Request() req: any) {
     const result = await this.shareService.findSharedWith(req.user);
     return new SuccessResponse('Shared files retrieved successfully', result);

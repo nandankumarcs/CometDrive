@@ -3,10 +3,12 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import {
   FileEntity,
   FilePlaybackProgressEntity,
+  FileVideoCommentEntity,
   FolderEntity,
   AuditLogEntity,
   OrganizationEntity,
   UserEntity,
+  Share,
 } from '@src/entities';
 import { FileService } from './file.service';
 import { FileController } from './file.controller';
@@ -19,10 +21,12 @@ import { AuthModule } from '../auth/auth.module';
     SequelizeModule.forFeature([
       FileEntity,
       FilePlaybackProgressEntity,
+      FileVideoCommentEntity,
       FolderEntity,
       AuditLogEntity,
       OrganizationEntity,
       UserEntity,
+      Share,
     ]),
     StorageModule,
     AuthModule,

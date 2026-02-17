@@ -6,6 +6,9 @@ import { SuccessResponse } from '../../commons/dtos/success-response.dto';
 const mockShareService = {
   create: jest.fn(),
   getShareByFile: jest.fn(),
+  getShareByFolder: jest.fn(),
+  getSharesByResource: jest.fn(),
+  revokeByShareUuid: jest.fn(),
   revoke: jest.fn(),
   findSharedWith: jest.fn(),
 };
@@ -73,6 +76,35 @@ describe('ShareController', () => {
 
       expect(mockShareService.revoke).toHaveBeenCalledWith(req.user, fileUuid);
       expect(result).toEqual(new SuccessResponse('Share link revoked successfully'));
+    });
+  });
+
+  describe('revokeByShareUuid', () => {
+    it('should revoke a specific share', async () => {
+      const req = { user: { id: 1 } };
+      const shareUuid = 'share-uuid';
+
+      const result = await controller.revokeByShareUuid(req, shareUuid);
+
+      expect(mockShareService.revokeByShareUuid).toHaveBeenCalledWith(req.user, shareUuid);
+      expect(result).toEqual(new SuccessResponse('Share revoked successfully'));
+    });
+  });
+
+  describe('getSharesByResource', () => {
+    it('should return shares for a resource', async () => {
+      const req = { user: { id: 1 } };
+      const shares = [{ uuid: 'share-1' }];
+      mockShareService.getSharesByResource.mockResolvedValue(shares);
+
+      const result = await controller.getSharesByResource(req, 'folder', 'folder-uuid');
+
+      expect(mockShareService.getSharesByResource).toHaveBeenCalledWith(
+        req.user,
+        'folder',
+        'folder-uuid',
+      );
+      expect(result).toEqual(new SuccessResponse('Shares retrieved successfully', shares));
     });
   });
 });

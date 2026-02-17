@@ -59,15 +59,27 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
     },
   });
 
-  await queryInterface.addConstraint('file_playback_progress', {
-    fields: ['user_id', 'file_id'],
-    type: 'unique',
-    name: 'UQ_FILE_PLAYBACK_PROGRESS_USER_FILE',
-  });
+  try {
+    await queryInterface.addConstraint('file_playback_progress', {
+      fields: ['user_id', 'file_id'],
+      type: 'unique',
+      name: 'UQ_FILE_PLAYBACK_PROGRESS_USER_FILE',
+    });
+  } catch (error: any) {
+    if (error?.original?.code !== '42P07') {
+      throw error;
+    }
+  }
 
-  await queryInterface.addIndex('file_playback_progress', ['user_id', 'last_watched_at'], {
-    name: 'IDX_FILE_PLAYBACK_PROGRESS_USER_LAST_WATCHED',
-  });
+  try {
+    await queryInterface.addIndex('file_playback_progress', ['user_id', 'last_watched_at'], {
+      name: 'IDX_FILE_PLAYBACK_PROGRESS_USER_LAST_WATCHED',
+    });
+  } catch (error: any) {
+    if (error?.original?.code !== '42P07') {
+      throw error;
+    }
+  }
 };
 
 export const down = async (queryInterface: QueryInterface): Promise<void> => {

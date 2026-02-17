@@ -1,15 +1,19 @@
 import {
   FileEntity,
   FilePlaybackProgressEntity,
+  FileVideoCommentEntity,
   FolderEntity,
   UserEntity,
   OrganizationEntity,
+  Share,
+  SharePermission,
 } from '@src/entities';
 import { Op } from 'sequelize';
 import archiver from 'archiver';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { UpdatePlaybackProgressDto } from './dto/update-playback-progress.dto';
+import { CreateVideoCommentDto } from './dto/create-video-comment.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
 import {
@@ -34,6 +38,10 @@ export class FileService {
     private readonly folderModel: typeof FolderEntity,
     @InjectModel(FilePlaybackProgressEntity)
     private readonly playbackProgressModel: typeof FilePlaybackProgressEntity,
+    @InjectModel(FileVideoCommentEntity)
+    private readonly videoCommentModel: typeof FileVideoCommentEntity,
+    @InjectModel(Share)
+    private readonly shareModel: typeof Share,
     @InjectModel(OrganizationEntity)
     private readonly organizationModel: typeof OrganizationEntity,
     private readonly storageService: StorageService,
@@ -43,17 +51,31 @@ export class FileService {
   async upload(file: any, user: UserEntity, createFileDto: CreateFileDto) {
     const { folderUuid } = createFileDto;
     let folderId: number | null = null;
+    let fileOwnerId = user.id;
 
     try {
       if (folderUuid) {
         const folder = await this.folderModel.findOne({
-          where: { uuid: folderUuid, user_id: user.id },
+          where: { uuid: folderUuid },
         });
 
         if (!folder) {
           throw new NotFoundException('Folder not found');
         }
+
+        if (folder.user_id !== user.id) {
+          const hasEditAccess = await this.hasSharedFolderAccess(
+            folder.id,
+            user.id,
+            SharePermission.EDITOR,
+          );
+          if (!hasEditAccess) {
+            throw new NotFoundException('Folder not found');
+          }
+        }
+
         folderId = folder.id;
+        fileOwnerId = folder.user_id;
       }
 
       const timestamp = Date.now();
@@ -89,7 +111,7 @@ export class FileService {
         storage_path: storagePath,
         storage_provider: this.storageService.getDriver(),
         storage_bucket: this.storageService.getBucket(),
-        user_id: user.id,
+        user_id: fileOwnerId,
         folder_id: folderId,
       });
 
@@ -119,22 +141,30 @@ export class FileService {
     order: 'ASC' | 'DESC' = 'DESC',
     isStarred = false,
   ) {
-    let folderId: number | null = null;
-    const where: any = {
-      user_id: user.id,
-    };
+    const where: any = {};
 
     if (folderUuid && folderUuid !== 'root') {
       const folder = await this.folderModel.findOne({
-        where: { uuid: folderUuid, user_id: user.id },
+        where: { uuid: folderUuid },
       });
       if (!folder) {
         throw new NotFoundException('Folder not found');
       }
-      folderId = folder.id;
-      where.folder_id = folderId;
+
+      if (folder.user_id !== user.id) {
+        const hasAccess = await this.hasSharedFolderAccess(folder.id, user.id);
+        if (!hasAccess) {
+          throw new NotFoundException('Folder not found');
+        }
+      }
+
+      where.user_id = folder.user_id;
+      where.folder_id = folder.id;
     } else if (folderUuid === 'root') {
+      where.user_id = user.id;
       where.folder_id = null;
+    } else {
+      where.user_id = user.id;
     }
 
     if (!search && folderUuid === undefined) {
@@ -142,7 +172,9 @@ export class FileService {
     }
 
     if (search) {
-      delete where.folder_id;
+      if (!folderUuid) {
+        delete where.folder_id;
+      }
       where.name = { [Op.iLike]: `%${search}%` };
     }
 
@@ -193,8 +225,43 @@ export class FileService {
     return file;
   }
 
+  async findAccessible(uuid: string, user: UserEntity, requireVideo = false) {
+    const file = await this.fileModel.findOne({
+      where: { uuid },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.user_id !== user.id) {
+      const hasDirectShare = await this.hasDirectFileShare(
+        file.id,
+        user.id,
+        SharePermission.VIEWER,
+      );
+
+      if (!hasDirectShare) {
+        const hasFolderAccess =
+          file.folder_id !== null
+            ? await this.hasSharedFolderAccess(file.folder_id, user.id)
+            : false;
+
+        if (!hasFolderAccess) {
+          throw new NotFoundException('File not found');
+        }
+      }
+    }
+
+    if (requireVideo && !file.mime_type?.toLowerCase().startsWith('video/')) {
+      throw new BadRequestException('Playback progress is supported for video files only');
+    }
+
+    return file;
+  }
+
   async update(uuid: string, updateFileDto: UpdateFileDto, user: UserEntity) {
-    const file = await this.findOne(uuid, user);
+    const file = await this.findEditable(uuid, user);
     const { name, folderUuid } = updateFileDto;
 
     if (name) {
@@ -203,14 +270,29 @@ export class FileService {
 
     if (folderUuid !== undefined) {
       if (folderUuid === null) {
+        if (file.user_id !== user.id) {
+          throw new NotFoundException('Folder not found');
+        }
         file.folder_id = null;
       } else {
         const folder = await this.folderModel.findOne({
-          where: { uuid: folderUuid, user_id: user.id },
+          where: { uuid: folderUuid },
         });
         if (!folder) {
           throw new NotFoundException('Folder not found');
         }
+        if (folder.user_id !== user.id) {
+          const hasEditAccess = await this.hasSharedFolderAccess(
+            folder.id,
+            user.id,
+            SharePermission.EDITOR,
+          );
+          if (!hasEditAccess) {
+            throw new NotFoundException('Folder not found');
+          }
+        }
+
+        file.user_id = folder.user_id;
         file.folder_id = folder.id;
       }
     }
@@ -229,7 +311,7 @@ export class FileService {
   }
 
   async trash(uuid: string, user: UserEntity) {
-    const file = await this.findOne(uuid, user);
+    const file = await this.findEditable(uuid, user);
     await file.destroy();
 
     const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
@@ -359,7 +441,7 @@ export class FileService {
   }
 
   async getDownloadStream(uuid: string, user: UserEntity) {
-    const file = await this.findOne(uuid, user);
+    const file = await this.findAccessible(uuid, user);
     return this.storageService.download(file.storage_path);
   }
 
@@ -369,7 +451,7 @@ export class FileService {
   }
 
   async getSignedUrl(uuid: string, user: UserEntity) {
-    const file = await this.findOne(uuid, user);
+    const file = await this.findAccessible(uuid, user);
     if (this.storageService.getDriver() === 'local') {
       return `/api/v1/files/${file.uuid}/content`;
     }
@@ -377,7 +459,7 @@ export class FileService {
   }
 
   async upsertPlaybackProgress(uuid: string, user: UserEntity, dto: UpdatePlaybackProgressDto) {
-    const file = await this.getOwnedVideoFile(uuid, user);
+    const file = await this.findAccessible(uuid, user, true);
     const positionSeconds = Math.max(0, Math.floor(dto.positionSeconds));
     const durationSeconds = Math.max(1, Math.floor(dto.durationSeconds));
     const progressPercent = this.computeProgressPercent(positionSeconds, durationSeconds);
@@ -423,7 +505,7 @@ export class FileService {
   }
 
   async getPlaybackProgress(uuid: string, user: UserEntity) {
-    const file = await this.getOwnedVideoFile(uuid, user);
+    const file = await this.findAccessible(uuid, user, true);
     const progress = await this.playbackProgressModel.findOne({
       where: { user_id: user.id, file_id: file.id },
     });
@@ -473,7 +555,7 @@ export class FileService {
   }
 
   async dismissPlaybackProgress(uuid: string, user: UserEntity) {
-    const file = await this.getOwnedVideoFile(uuid, user);
+    const file = await this.findAccessible(uuid, user, true);
     const progress = await this.playbackProgressModel.findOne({
       where: { user_id: user.id, file_id: file.id },
     });
@@ -482,6 +564,63 @@ export class FileService {
       await progress.destroy();
     }
 
+    return { success: true };
+  }
+
+  async listVideoComments(uuid: string, user: UserEntity) {
+    const file = await this.findAccessible(uuid, user, true);
+    const comments = await this.videoCommentModel.findAll({
+      where: { file_id: file.id },
+      include: [
+        {
+          model: UserEntity,
+          as: 'author',
+          attributes: ['uuid', 'first_name', 'last_name'],
+          required: true,
+        },
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 200,
+    });
+
+    return comments.reverse().map((comment) => this.mapVideoComment(file.uuid, comment, user.id));
+  }
+
+  async createVideoComment(uuid: string, user: UserEntity, dto: CreateVideoCommentDto) {
+    const file = await this.findAccessible(uuid, user, true);
+    const content = typeof dto.content === 'string' ? dto.content.trim() : '';
+    if (!content) {
+      throw new BadRequestException('Comment content is required');
+    }
+
+    const created = await this.videoCommentModel.create({
+      file_id: file.id,
+      user_id: user.id,
+      content,
+      timestamp_seconds: Math.max(0, Math.floor(dto.timestampSeconds)),
+    });
+
+    return this.mapVideoComment(file.uuid, created, user.id, user);
+  }
+
+  async deleteVideoComment(uuid: string, commentUuid: string, user: UserEntity) {
+    const file = await this.findAccessible(uuid, user, true);
+    const comment = await this.videoCommentModel.findOne({
+      where: {
+        uuid: commentUuid,
+        file_id: file.id,
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (comment.user_id !== user.id) {
+      throw new ForbiddenException('You can only delete your own comments');
+    }
+
+    await comment.destroy();
     return { success: true };
   }
 
@@ -523,12 +662,86 @@ export class FileService {
     return archive;
   }
 
-  private async getOwnedVideoFile(uuid: string, user: UserEntity) {
-    const file = await this.findOne(uuid, user);
-    if (!file.mime_type?.toLowerCase().startsWith('video/')) {
-      throw new BadRequestException('Playback progress is supported for video files only');
+  private async findEditable(uuid: string, user: UserEntity) {
+    const file = await this.fileModel.findOne({
+      where: { uuid },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
     }
+
+    if (file.user_id !== user.id) {
+      const hasDirectShare = await this.hasDirectFileShare(
+        file.id,
+        user.id,
+        SharePermission.EDITOR,
+      );
+      const hasFolderAccess =
+        file.folder_id !== null
+          ? await this.hasSharedFolderAccess(file.folder_id, user.id, SharePermission.EDITOR)
+          : false;
+
+      if (!hasDirectShare && !hasFolderAccess) {
+        throw new NotFoundException('File not found');
+      }
+    }
+
     return file;
+  }
+
+  private async hasDirectFileShare(
+    fileId: number,
+    recipientId: number,
+    requiredPermission: SharePermission,
+  ) {
+    const share = await this.shareModel.findOne({
+      where: {
+        file_id: fileId,
+        recipient_id: recipientId,
+        is_active: true,
+        ...(requiredPermission === SharePermission.EDITOR
+          ? { permission: SharePermission.EDITOR }
+          : {}),
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
+      },
+    });
+
+    return !!share;
+  }
+
+  private async hasSharedFolderAccess(
+    folderId: number,
+    recipientId: number,
+    requiredPermission: SharePermission = SharePermission.VIEWER,
+  ) {
+    let currentFolderId: number | null = folderId;
+
+    while (currentFolderId) {
+      const activeShare = await this.shareModel.findOne({
+        where: {
+          folder_id: currentFolderId,
+          recipient_id: recipientId,
+          is_active: true,
+          ...(requiredPermission === SharePermission.EDITOR
+            ? { permission: SharePermission.EDITOR }
+            : {}),
+          [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
+        },
+      });
+
+      if (activeShare) {
+        return true;
+      }
+
+      const currentFolder = await this.folderModel.findByPk(currentFolderId, {
+        attributes: ['id', 'parent_id'],
+      });
+
+      currentFolderId = currentFolder?.parent_id ?? null;
+    }
+
+    return false;
   }
 
   private computeProgressPercent(positionSeconds: number, durationSeconds: number) {
@@ -545,6 +758,28 @@ export class FileService {
       durationSeconds: progress.duration_seconds,
       progressPercent: parseFloat(progress.progress_percent as unknown as string),
       lastWatchedAt: progress.last_watched_at,
+    };
+  }
+
+  private mapVideoComment(
+    fileUuid: string,
+    comment: FileVideoCommentEntity,
+    currentUserId: number,
+    fallbackAuthor?: UserEntity,
+  ) {
+    const author = comment.author ?? fallbackAuthor;
+    return {
+      uuid: comment.uuid,
+      fileUuid,
+      content: comment.content,
+      timestampSeconds: comment.timestamp_seconds,
+      createdAt: (comment as any).created_at ?? comment.createdAt,
+      author: {
+        uuid: author?.uuid ?? '',
+        firstName: author?.first_name ?? 'Unknown',
+        lastName: author?.last_name ?? 'User',
+      },
+      canDelete: comment.user_id === currentUserId,
     };
   }
 }

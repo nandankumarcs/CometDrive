@@ -410,7 +410,7 @@ function ContextMenu({
               <Download className="h-4 w-4 mr-2" /> Download
             </button>
           )}
-          {type === 'file' && (
+          {!isTrashed && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

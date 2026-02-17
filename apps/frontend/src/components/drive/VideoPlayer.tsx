@@ -27,6 +27,8 @@ interface VideoPlayerProps {
   poster?: string;
   autoPlay?: boolean;
   initialTimeSeconds?: number;
+  seekToSeconds?: number | null;
+  onCurrentTimeChange?: (seconds: number) => void;
   onProgressSync?: (payload: {
     fileUuid: string;
     positionSeconds: number;
@@ -45,6 +47,8 @@ export function VideoPlayer({
   poster,
   autoPlay = false,
   initialTimeSeconds = 0,
+  seekToSeconds = null,
+  onCurrentTimeChange,
   onProgressSync,
   onNext,
   onPrev,
@@ -201,6 +205,25 @@ export function VideoPlayer({
     };
   }, [autoPlay, initialTimeSeconds, src]);
 
+  useEffect(() => {
+    if (seekToSeconds === null || !videoRef.current) return;
+
+    const video = videoRef.current;
+    const safeSeekSeconds = Math.max(0, seekToSeconds);
+    const durationSeconds = Number(video.duration);
+    const boundedSeekSeconds =
+      Number.isFinite(durationSeconds) && durationSeconds > 0
+        ? Math.min(safeSeekSeconds, Math.max(durationSeconds - 0.1, 0))
+        : safeSeekSeconds;
+
+    if (Math.abs(video.currentTime - boundedSeekSeconds) > 0.25) {
+      video.currentTime = boundedSeekSeconds;
+      lastKnownTimeRef.current = boundedSeekSeconds;
+      setCurrentTime(boundedSeekSeconds);
+      onCurrentTimeChange?.(boundedSeekSeconds);
+    }
+  }, [onCurrentTimeChange, seekToSeconds]);
+
   // Handle Play/Pause Key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -301,6 +324,7 @@ export function VideoPlayer({
       if (!video) return;
       lastKnownTimeRef.current = video.currentTime;
       setCurrentTime(video.currentTime);
+      onCurrentTimeChange?.(video.currentTime);
       if (video.buffered.length > 0) {
         setBuffered(video.buffered.end(video.buffered.length - 1));
       }
@@ -332,6 +356,7 @@ export function VideoPlayer({
     const onSeeked = () => {
       clearWaitingSpinnerTimer();
       lastKnownTimeRef.current = video.currentTime;
+      onCurrentTimeChange?.(video.currentTime);
       setLoading(false);
     };
     const onEnded = () => {
@@ -395,7 +420,7 @@ export function VideoPlayer({
         video.removeEventListener('error', onError);
       }
     };
-  }, [autoPlay, emitPlaybackProgress]);
+  }, [autoPlay, emitPlaybackProgress, onCurrentTimeChange]);
 
   // Controls Visibility
   const handleMouseMove = () => {
@@ -417,12 +442,14 @@ export function VideoPlayer({
       videoRef.current.currentTime = time;
       lastKnownTimeRef.current = time;
       setCurrentTime(time);
+      onCurrentTimeChange?.(time);
     }
   };
 
   const seekRelative = (seconds: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime += seconds;
+      onCurrentTimeChange?.(videoRef.current.currentTime);
     }
   };
 
