@@ -18,6 +18,10 @@ const mockFileService = {
   emptyTrash: jest.fn(),
   toggleStar: jest.fn(),
   getSignedUrl: jest.fn(),
+  getPlaybackProgress: jest.fn(),
+  upsertPlaybackProgress: jest.fn(),
+  getContinueWatching: jest.fn(),
+  dismissPlaybackProgress: jest.fn(),
 };
 
 const mockResponse = {
@@ -87,6 +91,65 @@ describe('FileController', () => {
         false,
       );
       expect(result).toEqual(new SuccessResponse('Files retrieved successfully', files));
+    });
+  });
+
+  describe('playback progress', () => {
+    it('should return latest continue watching item', async () => {
+      const req = { user: { id: 1 } };
+      const payload = { file: { uuid: 'file-uuid', name: 'video.mp4' }, positionSeconds: 40 };
+      mockFileService.getContinueWatching.mockResolvedValue(payload);
+
+      const result = await controller.getContinueWatching(req);
+
+      expect(mockFileService.getContinueWatching).toHaveBeenCalledWith(req.user);
+      expect(result).toEqual(
+        new SuccessResponse('Continue watching item retrieved successfully', payload),
+      );
+    });
+
+    it('should get playback progress by uuid', async () => {
+      const req = { user: { id: 1 } };
+      const payload = { fileUuid: 'file-uuid', positionSeconds: 12, durationSeconds: 100 };
+      mockFileService.getPlaybackProgress.mockResolvedValue(payload);
+
+      const result = await controller.getPlaybackProgress('file-uuid', req);
+
+      expect(mockFileService.getPlaybackProgress).toHaveBeenCalledWith('file-uuid', req.user);
+      expect(result).toEqual(
+        new SuccessResponse('Playback progress retrieved successfully', payload),
+      );
+    });
+
+    it('should update playback progress', async () => {
+      const req = { user: { id: 1 } };
+      const dto = { positionSeconds: 44, durationSeconds: 240 };
+      const payload = { fileUuid: 'file-uuid', positionSeconds: 44, durationSeconds: 240 };
+      mockFileService.upsertPlaybackProgress.mockResolvedValue(payload);
+
+      const result = await controller.updatePlaybackProgress('file-uuid', req, dto);
+
+      expect(mockFileService.upsertPlaybackProgress).toHaveBeenCalledWith(
+        'file-uuid',
+        req.user,
+        dto,
+      );
+      expect(result).toEqual(
+        new SuccessResponse('Playback progress updated successfully', payload),
+      );
+    });
+
+    it('should dismiss playback progress', async () => {
+      const req = { user: { id: 1 } };
+      const payload = { success: true };
+      mockFileService.dismissPlaybackProgress.mockResolvedValue(payload);
+
+      const result = await controller.dismissPlaybackProgress('file-uuid', req);
+
+      expect(mockFileService.dismissPlaybackProgress).toHaveBeenCalledWith('file-uuid', req.user);
+      expect(result).toEqual(
+        new SuccessResponse('Playback progress dismissed successfully', payload),
+      );
     });
   });
 

@@ -31,6 +31,7 @@ export function UploadDropzone() {
       <input
         ref={inputRef}
         type="file"
+        data-testid="upload-input"
         className="hidden"
         multiple
         onChange={(e) => handleFiles(e.target.files)}

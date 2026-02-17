@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
   Request,
@@ -26,8 +27,11 @@ import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FileService } from './file.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
+import { UpdatePlaybackProgressDto } from './dto/update-playback-progress.dto';
 import { SuccessResponse } from '@src/commons/dtos';
 import { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @ApiTags('Files')
 @ApiBearerAuth()
@@ -87,6 +91,38 @@ export class FileController {
       isStarred === 'true',
     );
     return new SuccessResponse('Files retrieved successfully', result);
+  }
+
+  @Get('continue-watching')
+  @ApiOperation({ summary: 'Get latest continue-watching video item' })
+  async getContinueWatching(@Request() req: any) {
+    const result = await this.fileService.getContinueWatching(req.user);
+    return new SuccessResponse('Continue watching item retrieved successfully', result);
+  }
+
+  @Get(':uuid/playback-progress')
+  @ApiOperation({ summary: 'Get playback progress for a video file' })
+  async getPlaybackProgress(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.getPlaybackProgress(uuid, req.user);
+    return new SuccessResponse('Playback progress retrieved successfully', result);
+  }
+
+  @Put(':uuid/playback-progress')
+  @ApiOperation({ summary: 'Upsert playback progress for a video file' })
+  async updatePlaybackProgress(
+    @Param('uuid') uuid: string,
+    @Request() req: any,
+    @Body() dto: UpdatePlaybackProgressDto,
+  ) {
+    const result = await this.fileService.upsertPlaybackProgress(uuid, req.user, dto);
+    return new SuccessResponse('Playback progress updated successfully', result);
+  }
+
+  @Delete(':uuid/playback-progress')
+  @ApiOperation({ summary: 'Dismiss playback progress for a video file' })
+  async dismissPlaybackProgress(@Param('uuid') uuid: string, @Request() req: any) {
+    const result = await this.fileService.dismissPlaybackProgress(uuid, req.user);
+    return new SuccessResponse('Playback progress dismissed successfully', result);
   }
 
   @Get(':uuid')
@@ -153,14 +189,67 @@ export class FileController {
   @ApiOperation({ summary: 'View file content (inline)' })
   async content(@Param('uuid') uuid: string, @Request() req: any, @Res() res: Response) {
     const file = await this.fileService.findOne(uuid, req.user);
-    const stream = await this.fileService.getDownloadStream(uuid, req.user);
 
+    if (file.storage_provider === 'local') {
+      const filePath = path.resolve('uploads', file.storage_path);
+      const { size: fileSize } = await fs.promises.stat(filePath);
+      const rangeHeader = req.headers.range as string | undefined;
+
+      if (rangeHeader) {
+        const rangeMatch = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+        if (!rangeMatch) {
+          res.status(416).set({
+            'Content-Range': `bytes */${fileSize}`,
+          });
+          return res.end();
+        }
+
+        const start = rangeMatch[1] ? Number.parseInt(rangeMatch[1], 10) : 0;
+        const requestedEnd = rangeMatch[2] ? Number.parseInt(rangeMatch[2], 10) : fileSize - 1;
+        const end = Math.min(requestedEnd, fileSize - 1);
+
+        if (
+          Number.isNaN(start) ||
+          Number.isNaN(end) ||
+          start < 0 ||
+          start > end ||
+          start >= fileSize
+        ) {
+          res.status(416).set({
+            'Content-Range': `bytes */${fileSize}`,
+          });
+          return res.end();
+        }
+
+        const chunkSize = end - start + 1;
+        res.status(206).set({
+          'Content-Type': file.mime_type,
+          'Content-Disposition': `inline; filename="${file.name}"`,
+          'Accept-Ranges': 'bytes',
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': String(chunkSize),
+        });
+
+        return fs.createReadStream(filePath, { start, end }).pipe(res);
+      }
+
+      res.set({
+        'Content-Type': file.mime_type,
+        'Content-Disposition': `inline; filename="${file.name}"`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': String(fileSize),
+      });
+
+      return fs.createReadStream(filePath).pipe(res);
+    }
+
+    const stream = await this.fileService.getDownloadStream(uuid, req.user);
     res.set({
       'Content-Type': file.mime_type,
       'Content-Disposition': `inline; filename="${file.name}"`,
+      'Accept-Ranges': 'bytes',
     });
-
-    stream.pipe(res);
+    return stream.pipe(res);
   }
 
   @Post(':uuid/toggle-star')

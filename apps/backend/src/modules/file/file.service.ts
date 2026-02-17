@@ -1,12 +1,27 @@
-import { FileEntity, FolderEntity, UserEntity, OrganizationEntity } from '@src/entities';
+import {
+  FileEntity,
+  FilePlaybackProgressEntity,
+  FolderEntity,
+  UserEntity,
+  OrganizationEntity,
+} from '@src/entities';
 import { Op } from 'sequelize';
 import archiver from 'archiver';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
+import { UpdatePlaybackProgressDto } from './dto/update-playback-progress.dto';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
-import { ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+
+const PLAYBACK_COMPLETION_THRESHOLD = 95;
 
 @Injectable()
 export class FileService {
@@ -17,6 +32,8 @@ export class FileService {
     private readonly fileModel: typeof FileEntity,
     @InjectModel(FolderEntity)
     private readonly folderModel: typeof FolderEntity,
+    @InjectModel(FilePlaybackProgressEntity)
+    private readonly playbackProgressModel: typeof FilePlaybackProgressEntity,
     @InjectModel(OrganizationEntity)
     private readonly organizationModel: typeof OrganizationEntity,
     private readonly storageService: StorageService,
@@ -215,9 +232,6 @@ export class FileService {
     const file = await this.findOne(uuid, user);
     await file.destroy();
 
-    const folderUuid = file.folder ? file.folder.uuid : file.folder_id ? 'root' : null;
-    // Retrieve folder uuid if not eager loaded or handle null
-    // Ideally we should eager load folder in findOne or just fetch it here
     const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
 
     await this.auditService.log(
@@ -362,6 +376,115 @@ export class FileService {
     return this.storageService.getSignedUrl(file.storage_path);
   }
 
+  async upsertPlaybackProgress(uuid: string, user: UserEntity, dto: UpdatePlaybackProgressDto) {
+    const file = await this.getOwnedVideoFile(uuid, user);
+    const positionSeconds = Math.max(0, Math.floor(dto.positionSeconds));
+    const durationSeconds = Math.max(1, Math.floor(dto.durationSeconds));
+    const progressPercent = this.computeProgressPercent(positionSeconds, durationSeconds);
+    const now = new Date();
+
+    const existing = await this.playbackProgressModel.findOne({
+      where: { user_id: user.id, file_id: file.id },
+    });
+
+    if (progressPercent >= PLAYBACK_COMPLETION_THRESHOLD) {
+      if (existing) {
+        await existing.destroy();
+      }
+      return {
+        fileUuid: file.uuid,
+        positionSeconds,
+        durationSeconds,
+        progressPercent,
+        lastWatchedAt: now,
+      };
+    }
+
+    if (existing) {
+      await existing.update({
+        position_seconds: positionSeconds,
+        duration_seconds: durationSeconds,
+        progress_percent: progressPercent,
+        last_watched_at: now,
+      });
+      return this.mapProgress(file.uuid, existing);
+    }
+
+    const created = await this.playbackProgressModel.create({
+      user_id: user.id,
+      file_id: file.id,
+      position_seconds: positionSeconds,
+      duration_seconds: durationSeconds,
+      progress_percent: progressPercent,
+      last_watched_at: now,
+    });
+
+    return this.mapProgress(file.uuid, created);
+  }
+
+  async getPlaybackProgress(uuid: string, user: UserEntity) {
+    const file = await this.getOwnedVideoFile(uuid, user);
+    const progress = await this.playbackProgressModel.findOne({
+      where: { user_id: user.id, file_id: file.id },
+    });
+
+    if (!progress) {
+      return null;
+    }
+
+    return this.mapProgress(file.uuid, progress);
+  }
+
+  async getContinueWatching(user: UserEntity) {
+    const progress = await this.playbackProgressModel.findOne({
+      where: { user_id: user.id },
+      include: [
+        {
+          model: FileEntity,
+          as: 'file',
+          required: true,
+          where: {
+            user_id: user.id,
+            mime_type: { [Op.iLike]: 'video/%' },
+          },
+          attributes: ['uuid', 'name', 'mime_type', 'size', 'updated_at'],
+        },
+      ],
+      order: [['last_watched_at', 'DESC']],
+    });
+
+    if (!progress || !progress.file) {
+      return null;
+    }
+
+    return {
+      file: {
+        uuid: progress.file.uuid,
+        name: progress.file.name,
+        mime_type: progress.file.mime_type,
+        size: progress.file.size,
+        updated_at: (progress.file as any).updated_at ?? progress.file.updatedAt,
+      },
+      positionSeconds: progress.position_seconds,
+      durationSeconds: progress.duration_seconds,
+      progressPercent: parseFloat(progress.progress_percent as unknown as string),
+      lastWatchedAt: progress.last_watched_at,
+    };
+  }
+
+  async dismissPlaybackProgress(uuid: string, user: UserEntity) {
+    const file = await this.getOwnedVideoFile(uuid, user);
+    const progress = await this.playbackProgressModel.findOne({
+      where: { user_id: user.id, file_id: file.id },
+    });
+
+    if (progress) {
+      await progress.destroy();
+    }
+
+    return { success: true };
+  }
+
   async downloadZip(uuids: string[], user: UserEntity) {
     const files = await this.fileModel.findAll({
       where: {
@@ -390,12 +513,38 @@ export class FileService {
         const stream = await this.storageService.download(file.storage_path);
         archive.append(stream, { name: file.name });
       } catch (error) {
-        this.logger.error(`Failed to add file ${file.name} to zip: ${error.message}`);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to add file ${file.name} to zip: ${message}`);
         // Optionally append a text file with error, or just skip
       }
     }
 
     archive.finalize();
     return archive;
+  }
+
+  private async getOwnedVideoFile(uuid: string, user: UserEntity) {
+    const file = await this.findOne(uuid, user);
+    if (!file.mime_type?.toLowerCase().startsWith('video/')) {
+      throw new BadRequestException('Playback progress is supported for video files only');
+    }
+    return file;
+  }
+
+  private computeProgressPercent(positionSeconds: number, durationSeconds: number) {
+    if (durationSeconds <= 0) {
+      return 0;
+    }
+    return Math.min(100, parseFloat(((positionSeconds / durationSeconds) * 100).toFixed(2)));
+  }
+
+  private mapProgress(fileUuid: string, progress: FilePlaybackProgressEntity) {
+    return {
+      fileUuid,
+      positionSeconds: progress.position_seconds,
+      durationSeconds: progress.duration_seconds,
+      progressPercent: parseFloat(progress.progress_percent as unknown as string),
+      lastWatchedAt: progress.last_watched_at,
+    };
   }
 }

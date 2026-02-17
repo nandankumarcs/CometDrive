@@ -21,10 +21,17 @@ import {
 } from 'lucide-react';
 
 interface VideoPlayerProps {
+  fileUuid?: string;
   src: string;
   mimeType: string;
   poster?: string;
   autoPlay?: boolean;
+  initialTimeSeconds?: number;
+  onProgressSync?: (payload: {
+    fileUuid: string;
+    positionSeconds: number;
+    durationSeconds: number;
+  }) => void | Promise<void>;
   onNext?: () => void;
   onPrev?: () => void;
   hasNext?: boolean;
@@ -32,10 +39,13 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({
+  fileUuid,
   src,
   mimeType,
   poster,
   autoPlay = false,
+  initialTimeSeconds = 0,
+  onProgressSync,
   onNext,
   onPrev,
   hasNext,
@@ -44,6 +54,15 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const waitingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSyncedSecondsRef = useRef(0);
+  const lastKnownTimeRef = useRef(0);
+  const lastAppliedSeekRef = useRef(0);
+  const hasAppliedInitialSeekRef = useRef(false);
+  const onProgressSyncRef = useRef(onProgressSync);
+  const fileUuidRef = useRef(fileUuid);
+  const durationRef = useRef(0);
+  const onNextRef = useRef(onNext);
 
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -59,29 +78,21 @@ export function VideoPlayer({
   const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Storage key for persistence
-  // We use a simple hash of the src to identify the video safely
-  const storageKey = `video-progress-${src.split('?')[0]}`; // simple cache bust ignore query params if signed url
-
-  // Load saved progress
   useEffect(() => {
-    const savedTime = localStorage.getItem(storageKey);
-    if (savedTime && videoRef.current) {
-      const time = parseFloat(savedTime);
-      if (!isNaN(time) && time > 0) {
-        videoRef.current.currentTime = time;
-        setCurrentTime(time);
-      }
-    }
-  }, [storageKey]);
+    onProgressSyncRef.current = onProgressSync;
+  }, [onProgressSync]);
 
-  // Save progress (throttled)
-  const saveProgress = useCallback(
-    (time: number) => {
-      localStorage.setItem(storageKey, time.toString());
-    },
-    [storageKey],
-  );
+  useEffect(() => {
+    fileUuidRef.current = fileUuid;
+  }, [fileUuid]);
+
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
+  useEffect(() => {
+    onNextRef.current = onNext;
+  }, [onNext]);
 
   // Format time (mm:ss)
   const formatTime = (time: number) => {
@@ -105,6 +116,90 @@ export function VideoPlayer({
       setPlaying(false);
     }
   }, []);
+
+  const emitPlaybackProgress = useCallback((force = false) => {
+    const syncHandler = onProgressSyncRef.current;
+    const currentFileUuid = fileUuidRef.current;
+    if (!syncHandler || !currentFileUuid) return;
+
+    const activeVideo = videoRef.current;
+    const durationSeconds = Math.floor(activeVideo?.duration || durationRef.current);
+    if (!durationSeconds || durationSeconds <= 0) return;
+
+    const positionSeconds = Math.floor(activeVideo?.currentTime ?? lastKnownTimeRef.current);
+    if (!force && positionSeconds - lastSyncedSecondsRef.current < 10) {
+      return;
+    }
+
+    lastSyncedSecondsRef.current = positionSeconds;
+    syncHandler({ fileUuid: currentFileUuid, positionSeconds, durationSeconds });
+  }, []);
+
+  useEffect(() => {
+    hasAppliedInitialSeekRef.current = false;
+    lastSyncedSecondsRef.current = 0;
+    lastKnownTimeRef.current = 0;
+    lastAppliedSeekRef.current = 0;
+    setLoading(true);
+    setError(null);
+    setCurrentTime(0);
+    setDuration(0);
+    setBuffered(0);
+    setPlaying(false);
+  }, [src]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || initialTimeSeconds <= 0) return;
+
+    const applyInitialSeek = () => {
+      const videoDuration = Number(video.duration);
+      if (!Number.isFinite(videoDuration) || videoDuration <= 0) return false;
+
+      const seekTo = Math.max(0, Math.min(initialTimeSeconds, Math.max(videoDuration - 1, 0)));
+      if (seekTo <= 0) return false;
+
+      if (seekTo <= lastAppliedSeekRef.current + 0.5) {
+        return true;
+      }
+
+      if (video.currentTime > seekTo + 0.5) {
+        lastAppliedSeekRef.current = seekTo;
+        return true;
+      }
+
+      if (Math.abs(video.currentTime - seekTo) > 0.25) {
+        video.currentTime = seekTo;
+        lastKnownTimeRef.current = seekTo;
+        setCurrentTime(seekTo);
+      }
+      lastAppliedSeekRef.current = seekTo;
+      hasAppliedInitialSeekRef.current = true;
+
+      if (autoPlay && video.paused) {
+        video.play().catch(() => {
+          // Autoplay might still be blocked, user can click play.
+        });
+      }
+      return true;
+    };
+
+    if (applyInitialSeek()) return;
+
+    const handleReadyForSeek = () => {
+      applyInitialSeek();
+    };
+
+    video.addEventListener('loadedmetadata', handleReadyForSeek);
+    video.addEventListener('durationchange', handleReadyForSeek);
+    video.addEventListener('canplay', handleReadyForSeek);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleReadyForSeek);
+      video.removeEventListener('durationchange', handleReadyForSeek);
+      video.removeEventListener('canplay', handleReadyForSeek);
+    };
+  }, [autoPlay, initialTimeSeconds, src]);
 
   // Handle Play/Pause Key
   useEffect(() => {
@@ -157,13 +252,13 @@ export function VideoPlayer({
           e.preventDefault();
           adjustVolume(-0.1);
           break;
-        case 'N':
+        case 'n':
           if (e.shiftKey && onNext) {
             e.preventDefault();
             onNext();
           }
           break;
-        case 'P':
+        case 'p':
           if (e.shiftKey && onPrev) {
             e.preventDefault();
             onPrev();
@@ -195,27 +290,69 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    const onTimeUpdate = () => {
-      if (!video) return;
-      setCurrentTime(video.currentTime);
-      saveProgress(video.currentTime); // This runs every ~250ms, acceptable for localStorage
-      if (video.buffered.length > 0) {
-        setBuffered(video.buffered.end(video.buffered.length - 1));
+    const clearWaitingSpinnerTimer = () => {
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current);
+        waitingTimeoutRef.current = null;
       }
     };
 
+    const onTimeUpdate = () => {
+      if (!video) return;
+      lastKnownTimeRef.current = video.currentTime;
+      setCurrentTime(video.currentTime);
+      if (video.buffered.length > 0) {
+        setBuffered(video.buffered.end(video.buffered.length - 1));
+      }
+      emitPlaybackProgress(false);
+    };
+
     const onDurationChange = () => setDuration(video.duration);
-    const onWaiting = () => setLoading(true);
-    const onCanPlay = () => setLoading(false);
+    const onWaiting = () => {
+      clearWaitingSpinnerTimer();
+      // Delay spinner to avoid rapid flicker on transient buffering events.
+      waitingTimeoutRef.current = setTimeout(() => setLoading(true), 200);
+    };
+    const onCanPlay = () => {
+      clearWaitingSpinnerTimer();
+      setLoading(false);
+    };
+    const onLoadedData = () => {
+      clearWaitingSpinnerTimer();
+      setLoading(false);
+    };
+    const onPlaying = () => {
+      clearWaitingSpinnerTimer();
+      setLoading(false);
+    };
+    const onSeeking = () => {
+      clearWaitingSpinnerTimer();
+      waitingTimeoutRef.current = setTimeout(() => setLoading(true), 200);
+    };
+    const onSeeked = () => {
+      clearWaitingSpinnerTimer();
+      lastKnownTimeRef.current = video.currentTime;
+      setLoading(false);
+    };
     const onEnded = () => {
       setPlaying(false);
-      if (onNext && autoPlay) {
-        onNext();
+      emitPlaybackProgress(true);
+      if (onNextRef.current && autoPlay) {
+        onNextRef.current();
       }
     };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPlay = () => {
+      setPlaying(true);
+      clearWaitingSpinnerTimer();
+      setLoading(false);
+    };
+    const onPause = () => {
+      setPlaying(false);
+      lastKnownTimeRef.current = video.currentTime;
+      emitPlaybackProgress(true);
+    };
     const onError = () => {
+      clearWaitingSpinnerTimer();
       setLoading(false);
       setError('Failed to load video.');
     };
@@ -224,6 +361,10 @@ export function VideoPlayer({
     video.addEventListener('durationchange', onDurationChange);
     video.addEventListener('waiting', onWaiting);
     video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('loadeddata', onLoadedData);
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('seeking', onSeeking);
+    video.addEventListener('seeked', onSeeked);
     video.addEventListener('ended', onEnded);
     video.addEventListener('play', onPlay);
     video.addEventListener('pause', onPause);
@@ -237,18 +378,24 @@ export function VideoPlayer({
     }
 
     return () => {
+      clearWaitingSpinnerTimer();
+      emitPlaybackProgress(true);
       if (video) {
         video.removeEventListener('timeupdate', onTimeUpdate);
         video.removeEventListener('durationchange', onDurationChange);
         video.removeEventListener('waiting', onWaiting);
         video.removeEventListener('canplay', onCanPlay);
+        video.removeEventListener('loadeddata', onLoadedData);
+        video.removeEventListener('playing', onPlaying);
+        video.removeEventListener('seeking', onSeeking);
+        video.removeEventListener('seeked', onSeeked);
         video.removeEventListener('ended', onEnded);
         video.removeEventListener('play', onPlay);
         video.removeEventListener('pause', onPause);
         video.removeEventListener('error', onError);
       }
     };
-  }, [autoPlay, saveProgress]);
+  }, [autoPlay, emitPlaybackProgress]);
 
   // Controls Visibility
   const handleMouseMove = () => {
@@ -268,6 +415,7 @@ export function VideoPlayer({
     const time = parseFloat(e.target.value);
     if (videoRef.current) {
       videoRef.current.currentTime = time;
+      lastKnownTimeRef.current = time;
       setCurrentTime(time);
     }
   };

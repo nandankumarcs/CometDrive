@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X, Download, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
 import { useFiles, useDownloadFile } from '../../hooks/use-files';
+import { usePlaybackProgress, useUpdatePlaybackProgress } from '../../hooks/use-video-progress';
 import api from '../../lib/api';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -14,6 +15,7 @@ export function FilePreviewModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
+  const { mutate: updatePlaybackProgress } = useUpdatePlaybackProgress();
 
   // Playlist Logic
   const videoFiles = files?.filter((f) => f.mime_type.startsWith('video/')) || [];
@@ -23,21 +25,30 @@ export function FilePreviewModal() {
   const hasNext = currentVideoIndex !== -1 && currentVideoIndex < videoFiles.length - 1;
   const hasPrev = currentVideoIndex > 0;
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (hasNext) {
       const nextFile = videoFiles[currentVideoIndex + 1];
       openPreview({ uuid: nextFile.uuid, name: nextFile.name, mimeType: nextFile.mime_type });
     }
-  };
+  }, [currentVideoIndex, hasNext, openPreview, videoFiles]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (hasPrev) {
       const prevFile = videoFiles[currentVideoIndex - 1];
       openPreview({ uuid: prevFile.uuid, name: prevFile.name, mimeType: prevFile.mime_type });
     }
-  };
+  }, [currentVideoIndex, hasPrev, openPreview, videoFiles]);
 
   const downloadFile = useDownloadFile();
+  const isVideoPreview = !!previewItem && previewItem.mimeType.startsWith('video/');
+  const { data: playbackProgress } = usePlaybackProgress(previewItem?.uuid ?? '', isVideoPreview);
+
+  const handleProgressSync = useCallback(
+    (payload: { fileUuid: string; positionSeconds: number; durationSeconds: number }) => {
+      updatePlaybackProgress(payload);
+    },
+    [updatePlaybackProgress],
+  );
 
   useEffect(() => {
     if (!previewItem) {
@@ -130,9 +141,12 @@ export function FilePreviewModal() {
     if (mimeType.startsWith('video/')) {
       return (
         <VideoPlayer
+          fileUuid={previewItem.uuid}
           src={signedUrl}
           mimeType={mimeType}
           autoPlay
+          initialTimeSeconds={playbackProgress?.positionSeconds ?? 0}
+          onProgressSync={handleProgressSync}
           onNext={handleNext}
           onPrev={handlePrev}
           hasNext={hasNext}

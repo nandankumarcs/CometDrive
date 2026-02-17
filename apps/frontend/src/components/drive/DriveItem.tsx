@@ -126,6 +126,9 @@ export function DriveItem({
             ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 shadow-md'
             : 'border-transparent bg-white dark:bg-gray-800/60 hover:border-gray-200 dark:hover:border-gray-700'
         }`}
+        data-testid="drive-item"
+        data-name={name}
+        data-uuid={uuid}
         onDoubleClick={handleDoubleClick}
         onClick={() => toggleSelectItem({ uuid, name, type, size, updatedAt, mimeType })}
       >
@@ -139,6 +142,7 @@ export function DriveItem({
               e.stopPropagation();
               setMenuOpen(!menuOpen);
             }}
+            data-testid="drive-item-menu"
             className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <MoreVertical className="h-4 w-4" />
@@ -216,6 +220,9 @@ export function DriveItem({
           ? 'bg-primary-50 dark:bg-primary-900/20'
           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
       }`}
+      data-testid="drive-item"
+      data-name={name}
+      data-uuid={uuid}
       onDoubleClick={handleDoubleClick}
       onClick={() => toggleSelectItem({ uuid, name, type, size, updatedAt, mimeType })}
     >
@@ -273,6 +280,7 @@ export function DriveItem({
             e.stopPropagation();
             setMenuOpen(!menuOpen);
           }}
+          data-testid="drive-item-menu"
           className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <MoreVertical className="h-4 w-4" />

@@ -9,6 +9,7 @@ export * from './audit-log.entity';
 export * from './folder.entity';
 export * from './file.entity';
 export * from './invitation.entity';
+export * from './file-playback-progress.entity';
 
 import { OrganizationEntity } from './organization.entity';
 import { UserTypeEntity } from './user-type.entity';
@@ -17,6 +18,10 @@ import { SessionEntity } from './session.entity';
 import { PasswordResetEntity } from './password-reset.entity';
 import { AuditLogEntity } from './audit-log.entity';
 import { InvitationEntity } from './invitation.entity';
+import { FolderEntity } from './folder.entity';
+import { FileEntity } from './file.entity';
+import { Share } from './share.entity';
+import { FilePlaybackProgressEntity } from './file-playback-progress.entity';
 
 export const entities = [
   UserTypeEntity,
@@ -26,4 +31,8 @@ export const entities = [
   PasswordResetEntity,
   AuditLogEntity,
   InvitationEntity,
+  FolderEntity,
+  FileEntity,
+  Share,
+  FilePlaybackProgressEntity,
 ];

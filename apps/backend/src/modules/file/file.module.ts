@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import {
   FileEntity,
+  FilePlaybackProgressEntity,
   FolderEntity,
   AuditLogEntity,
   OrganizationEntity,
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [
     SequelizeModule.forFeature([
       FileEntity,
+      FilePlaybackProgressEntity,
       FolderEntity,
       AuditLogEntity,
       OrganizationEntity,

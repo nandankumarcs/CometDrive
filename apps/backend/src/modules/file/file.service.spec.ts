@@ -1,14 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { FileService } from './file.service';
-import { FileEntity, FolderEntity, OrganizationEntity } from '@src/entities';
+import {
+  FileEntity,
+  FilePlaybackProgressEntity,
+  FolderEntity,
+  OrganizationEntity,
+} from '@src/entities';
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('FileService', () => {
   let service: FileService;
   let fileModel: typeof FileEntity;
+  let playbackProgressModel: typeof FilePlaybackProgressEntity;
   let folderModel: typeof FolderEntity;
   let organizationModel: typeof OrganizationEntity;
   let storageService: StorageService;
@@ -38,6 +44,23 @@ describe('FileService', () => {
     create: jest.fn().mockResolvedValue(mockFileInstance),
     findOne: jest.fn(),
     findAll: jest.fn().mockResolvedValue([mockFileInstance]),
+  };
+
+  const mockPlaybackProgressInstance = {
+    id: 10,
+    user_id: 1,
+    file_id: 1,
+    position_seconds: 25,
+    duration_seconds: 100,
+    progress_percent: '25.00',
+    last_watched_at: new Date(),
+    update: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  };
+
+  const mockPlaybackProgressModel = {
+    findOne: jest.fn(),
+    create: jest.fn().mockResolvedValue(mockPlaybackProgressInstance),
   };
 
   const mockFolderModel = {
@@ -80,6 +103,10 @@ describe('FileService', () => {
           useValue: mockFolderModel,
         },
         {
+          provide: getModelToken(FilePlaybackProgressEntity),
+          useValue: mockPlaybackProgressModel,
+        },
+        {
           provide: getModelToken(OrganizationEntity),
           useValue: mockOrganizationModel,
         },
@@ -96,6 +123,9 @@ describe('FileService', () => {
 
     service = module.get<FileService>(FileService);
     fileModel = module.get<typeof FileEntity>(getModelToken(FileEntity));
+    playbackProgressModel = module.get<typeof FilePlaybackProgressEntity>(
+      getModelToken(FilePlaybackProgressEntity),
+    );
     folderModel = module.get<typeof FolderEntity>(getModelToken(FolderEntity));
     storageService = module.get<StorageService>(StorageService);
     auditService = module.get<AuditService>(AuditService);
@@ -161,6 +191,113 @@ describe('FileService', () => {
         }),
       );
       expect(result).toEqual([mockFileInstance]);
+    });
+  });
+
+  describe('playback progress', () => {
+    it('should create playback progress for a video file', async () => {
+      const videoFile = { ...mockFileInstance, mime_type: 'video/mp4' };
+      mockFileModel.findOne.mockResolvedValue(videoFile);
+      mockPlaybackProgressModel.findOne.mockResolvedValue(null);
+
+      const result = await service.upsertPlaybackProgress(mockFileInstance.uuid, mockUser, {
+        positionSeconds: 15,
+        durationSeconds: 100,
+      });
+
+      expect(playbackProgressModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: mockUser.id,
+          file_id: videoFile.id,
+          position_seconds: 15,
+          duration_seconds: 100,
+          progress_percent: 15,
+        }),
+      );
+      expect(result.fileUuid).toBe(mockFileInstance.uuid);
+    });
+
+    it('should update existing progress row', async () => {
+      const videoFile = { ...mockFileInstance, mime_type: 'video/mp4' };
+      mockFileModel.findOne.mockResolvedValue(videoFile);
+      mockPlaybackProgressModel.findOne.mockResolvedValue(mockPlaybackProgressInstance);
+
+      await service.upsertPlaybackProgress(mockFileInstance.uuid, mockUser, {
+        positionSeconds: 60,
+        durationSeconds: 100,
+      });
+
+      expect(mockPlaybackProgressInstance.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          position_seconds: 60,
+          duration_seconds: 100,
+          progress_percent: 60,
+        }),
+      );
+    });
+
+    it('should delete progress if video is completed', async () => {
+      const videoFile = { ...mockFileInstance, mime_type: 'video/mp4' };
+      mockFileModel.findOne.mockResolvedValue(videoFile);
+      mockPlaybackProgressModel.findOne.mockResolvedValue(mockPlaybackProgressInstance);
+
+      await service.upsertPlaybackProgress(mockFileInstance.uuid, mockUser, {
+        positionSeconds: 95,
+        durationSeconds: 100,
+      });
+
+      expect(mockPlaybackProgressInstance.destroy).toHaveBeenCalled();
+    });
+
+    it('should reject non-video files for playback progress APIs', async () => {
+      mockFileModel.findOne.mockResolvedValue(mockFileInstance);
+
+      await expect(
+        service.upsertPlaybackProgress(mockFileInstance.uuid, mockUser, {
+          positionSeconds: 10,
+          durationSeconds: 100,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return latest continue watching item', async () => {
+      const now = new Date();
+      mockPlaybackProgressModel.findOne.mockResolvedValue({
+        ...mockPlaybackProgressInstance,
+        position_seconds: 40,
+        duration_seconds: 120,
+        progress_percent: '33.33',
+        last_watched_at: now,
+        file: {
+          uuid: 'video-uuid',
+          name: 'video.mp4',
+          mime_type: 'video/mp4',
+          size: 12345,
+          updated_at: now,
+        },
+      });
+
+      const result = await service.getContinueWatching(mockUser);
+      expect(result).toEqual(
+        expect.objectContaining({
+          file: expect.objectContaining({ uuid: 'video-uuid' }),
+          positionSeconds: 40,
+          durationSeconds: 120,
+          progressPercent: 33.33,
+        }),
+      );
+    });
+
+    it('should dismiss playback progress', async () => {
+      const videoFile = { ...mockFileInstance, mime_type: 'video/mp4' };
+      const destroy = jest.fn().mockResolvedValue(true);
+      mockFileModel.findOne.mockResolvedValue(videoFile);
+      mockPlaybackProgressModel.findOne.mockResolvedValue({ destroy });
+
+      const result = await service.dismissPlaybackProgress(mockFileInstance.uuid, mockUser);
+
+      expect(destroy).toHaveBeenCalled();
+      expect(result).toEqual({ success: true });
     });
   });
 

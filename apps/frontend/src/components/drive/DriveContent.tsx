@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { HardDrive, Upload, FolderPlus } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useDriveStore } from '../../store/drive.store';
 import { useFolders, useTrashFolder } from '../../hooks/use-folders';
 import { useFiles, useTrashFile, useDownloadFile, useUploadFile } from '../../hooks/use-files';
@@ -14,6 +15,7 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ShareModal } from './ShareModal';
 import { UploadDropzone, triggerUpload } from './UploadDropzone';
 import { DetailsPanel } from './DetailsPanel';
+import { ContinueWatchingCard } from './ContinueWatchingCard';
 
 interface DriveContentProps {
   skipBreadcrumbReset?: boolean;
@@ -22,6 +24,7 @@ interface DriveContentProps {
 export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps) {
   const { currentFolderUuid, viewMode, selectedItems, resetBreadcrumbs, openModal } =
     useDriveStore();
+  const pathname = usePathname();
 
   const { data: folders = [], isLoading: foldersLoading } = useFolders(currentFolderUuid);
   const { data: files = [], isLoading: filesLoading } = useFiles(currentFolderUuid);
@@ -101,6 +104,7 @@ export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps)
 
   const isLoading = foldersLoading || filesLoading;
   const isEmpty = folders.length === 0 && files.length === 0;
+  const showContinueWatchingCard = pathname === '/drive' && currentFolderUuid === null;
 
   return (
     <div
@@ -111,6 +115,7 @@ export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps)
       onDrop={handleDrop}
     >
       <DriveToolbar onUpload={triggerUpload} />
+      {showContinueWatchingCard && <ContinueWatchingCard />}
 
       <div className="flex-1 flex min-h-0 relative">
         <div
@@ -167,6 +172,7 @@ export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps)
                   ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-1'
                   : 'flex flex-col gap-0.5 p-1'
               }
+              data-testid="drive-items"
             >
               {/* Folders first */}
               {folders.map((folder) => (
