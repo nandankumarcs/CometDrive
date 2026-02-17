@@ -4,6 +4,7 @@ import { FolderService } from './folder.service';
 import { FolderEntity, Share } from '@src/entities';
 import { AuditService } from '@src/commons/services';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { Op } from 'sequelize';
 
 describe('FolderService', () => {
   let service: FolderService;
@@ -30,6 +31,10 @@ describe('FolderService', () => {
     findOne: jest.fn().mockResolvedValue(mockFolderInstance),
     findAll: jest.fn().mockResolvedValue([mockFolderInstance]),
     findByPk: jest.fn(),
+    sequelize: {
+      getDialect: jest.fn().mockReturnValue('postgres'),
+      escape: jest.fn().mockImplementation((value: string) => `'${value.replace(/'/g, "''")}'`),
+    },
   };
 
   const mockAuditService = {
@@ -165,6 +170,34 @@ describe('FolderService', () => {
         paranoid: false,
         order: [['name', 'ASC']],
       });
+    });
+
+    it('should apply postgres full-text + fuzzy search with relevance ordering', async () => {
+      mockFolderModel.sequelize.getDialect.mockReturnValueOnce('postgres');
+      await service.findAll(mockUser, undefined, false, '  presntation  ');
+
+      const query = mockFolderModel.findAll.mock.calls[0][0];
+      expect(mockFolderModel.sequelize.escape).toHaveBeenCalledWith('presntation');
+      expect(query.where.user_id).toBe(mockUser.id);
+      expect(query.where.parent_id).toBeUndefined();
+      expect(query.where[Op.and]).toHaveLength(1);
+      expect(query.order[0][1]).toBe('DESC');
+      expect(query.order[1]).toEqual(['name', 'ASC']);
+    });
+
+    it('should fallback to ILIKE search for non-postgres dialects', async () => {
+      mockFolderModel.sequelize.getDialect.mockReturnValueOnce('mysql');
+      await service.findAll(mockUser, undefined, false, 'report');
+
+      const query = mockFolderModel.findAll.mock.calls[0][0];
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          user_id: mockUser.id,
+          name: { [Op.iLike]: '%report%' },
+        }),
+      );
+      expect(query.where.parent_id).toBeUndefined();
+      expect(query.order).toEqual([['name', 'ASC']]);
     });
   });
 

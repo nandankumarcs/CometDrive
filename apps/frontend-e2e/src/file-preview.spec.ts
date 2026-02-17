@@ -107,6 +107,24 @@ test.describe('File Preview Feature', () => {
     fs.rmSync(txtPath, { force: true });
   });
 
+  test('should support fuzzy search for file names', async ({ page }) => {
+    const uniqueId = Date.now();
+    const filename = `presentation-notes-${uniqueId}.txt`;
+    const txtPath = path.join(__dirname, filename);
+    fs.writeFileSync(txtPath, 'Fuzzy search validation content');
+
+    try {
+      await uploadFileViaApi(page, txtPath, 'text/plain');
+      await page.reload();
+      await waitForDriveReady(page);
+
+      await page.locator('input[placeholder="Search in Drive..."]').fill('presntation');
+      await waitForFileRow(page, filename);
+    } finally {
+      fs.rmSync(txtPath, { force: true });
+    }
+  });
+
   test('should support rich image viewer controls and image navigation', async ({ page }) => {
     const uniqueId = Date.now();
     const filePrefix = `preview-image-${uniqueId}`;
@@ -182,6 +200,17 @@ test.describe('File Preview Feature', () => {
       await expect(page.getByTestId('image-prev')).toBeVisible();
       await page.getByTestId('image-prev').click();
       await expect(page.locator(`h2:has-text("${secondName}")`)).toBeVisible({ timeout: 10000 });
+
+      await page.getByTestId('image-slideshow-speed').selectOption('1000');
+      await expect(imageViewer).toHaveAttribute('data-slideshow-speed', '1000');
+
+      await page.getByTestId('image-slideshow-toggle').click();
+      await expect(imageViewer).toHaveAttribute('data-slideshow-playing', 'true');
+
+      await expect(page.locator(`h2:has-text("${firstName}")`)).toBeVisible({ timeout: 10000 });
+      await expect(imageViewer).toHaveAttribute('data-slideshow-playing', 'false', {
+        timeout: 10000,
+      });
     } finally {
       fs.rmSync(firstPath, { force: true });
       fs.rmSync(secondPath, { force: true });

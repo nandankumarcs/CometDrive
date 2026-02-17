@@ -13,6 +13,7 @@ import {
 import { StorageService } from '@src/modules/storage/storage.service';
 import { AuditService } from '@src/commons/services';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Op } from 'sequelize';
 
 describe('FileService', () => {
   let service: FileService;
@@ -50,6 +51,10 @@ describe('FileService', () => {
     create: jest.fn().mockResolvedValue(mockFileInstance),
     findOne: jest.fn(),
     findAll: jest.fn().mockResolvedValue([mockFileInstance]),
+    sequelize: {
+      getDialect: jest.fn().mockReturnValue('postgres'),
+      escape: jest.fn().mockImplementation((value: string) => `'${value.replace(/'/g, "''")}'`),
+    },
   };
 
   const mockPlaybackProgressInstance = {
@@ -236,6 +241,34 @@ describe('FileService', () => {
         }),
       );
       expect(result).toEqual([mockFileInstance]);
+    });
+
+    it('should apply postgres full-text + fuzzy search with relevance ordering', async () => {
+      mockFileModel.sequelize.getDialect.mockReturnValueOnce('postgres');
+      await service.findAll(mockUser, undefined, false, '  presntation  ');
+
+      const query = mockFileModel.findAll.mock.calls[0][0];
+      expect(mockFileModel.sequelize.escape).toHaveBeenCalledWith('presntation');
+      expect(query.where.user_id).toBe(mockUser.id);
+      expect(query.where.folder_id).toBeUndefined();
+      expect(query.where[Op.and]).toHaveLength(1);
+      expect(query.order[0][1]).toBe('DESC');
+      expect(query.order[1]).toEqual(['created_at', 'DESC']);
+    });
+
+    it('should fallback to ILIKE search for non-postgres dialects', async () => {
+      mockFileModel.sequelize.getDialect.mockReturnValueOnce('mysql');
+      await service.findAll(mockUser, undefined, false, 'report');
+
+      const query = mockFileModel.findAll.mock.calls[0][0];
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          user_id: mockUser.id,
+          name: { [Op.iLike]: '%report%' },
+        }),
+      );
+      expect(query.where.folder_id).toBeUndefined();
+      expect(query.order).toEqual([['created_at', 'DESC']]);
     });
   });
 

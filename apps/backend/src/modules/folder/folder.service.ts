@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { FolderEntity, Share, SharePermission, UserEntity } from '@src/entities';
-import { Op } from 'sequelize';
+import { Op, col, fn, literal, where as sequelizeWhere } from 'sequelize';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AuditService } from '@src/commons/services';
+
+const SEARCH_SIMILARITY_THRESHOLD = 0.22;
 
 @Injectable()
 export class FolderService {
@@ -48,6 +50,9 @@ export class FolderService {
     isStarred = false,
   ) {
     const where: any = {};
+    const normalizedSearch = search?.trim();
+    const hasSearch = Boolean(normalizedSearch);
+    let relevanceOrderExpression: ReturnType<typeof literal> | null = null;
 
     if (parentUuid && parentUuid !== 'root') {
       const parent = await this.findAccessibleFolder(parentUuid, user);
@@ -60,15 +65,44 @@ export class FolderService {
       where.user_id = user.id;
     }
 
-    if (!search && parentUuid === undefined) {
+    if (!hasSearch && parentUuid === undefined) {
       where.parent_id = null;
     }
 
-    if (search) {
+    if (hasSearch) {
       if (!parentUuid) {
         delete where.parent_id;
       }
-      where.name = { [Op.iLike]: `%${search}%` };
+
+      const dialect = this.folderModel.sequelize?.getDialect();
+      if (dialect === 'postgres') {
+        const tsvector = fn('to_tsvector', 'simple', fn('coalesce', col('name'), ''));
+        const tsquery = fn('websearch_to_tsquery', 'simple', normalizedSearch);
+        const similarityScore = fn(
+          'similarity',
+          fn('lower', col('name')),
+          fn('lower', normalizedSearch),
+        );
+
+        where[Op.and] = [
+          ...((where[Op.and] as any[]) ?? []),
+          {
+            [Op.or]: [
+              sequelizeWhere(tsvector, '@@', tsquery),
+              sequelizeWhere(similarityScore, { [Op.gte]: SEARCH_SIMILARITY_THRESHOLD }),
+            ],
+          },
+        ];
+
+        const escapedSearchTerm =
+          this.folderModel.sequelize?.escape(normalizedSearch) ??
+          `'${normalizedSearch.replace(/'/g, "''")}'`;
+        relevanceOrderExpression = literal(
+          `(ts_rank_cd(to_tsvector('simple', coalesce(name, '')), websearch_to_tsquery('simple', ${escapedSearchTerm})) + similarity(lower(name), lower(${escapedSearchTerm})))`,
+        );
+      } else {
+        where.name = { [Op.iLike]: `%${normalizedSearch}%` };
+      }
     }
 
     if (isStarred) {
@@ -86,6 +120,9 @@ export class FolderService {
       };
       const field = fieldMap[sort] || 'name';
       orderClause = [[field, order]];
+    }
+    if (relevanceOrderExpression) {
+      orderClause = [[relevanceOrderExpression, 'DESC'], ...orderClause];
     }
 
     return this.folderModel.findAll({

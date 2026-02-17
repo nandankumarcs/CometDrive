@@ -8,7 +8,7 @@ import {
   Share,
   SharePermission,
 } from '@src/entities';
-import { Op } from 'sequelize';
+import { Op, col, fn, literal, where as sequelizeWhere } from 'sequelize';
 import archiver from 'archiver';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
@@ -26,6 +26,7 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 
 const PLAYBACK_COMPLETION_THRESHOLD = 95;
+const SEARCH_SIMILARITY_THRESHOLD = 0.22;
 
 @Injectable()
 export class FileService {
@@ -142,6 +143,9 @@ export class FileService {
     isStarred = false,
   ) {
     const where: any = {};
+    const normalizedSearch = search?.trim();
+    const hasSearch = Boolean(normalizedSearch);
+    let relevanceOrderExpression: ReturnType<typeof literal> | null = null;
 
     if (folderUuid && folderUuid !== 'root') {
       const folder = await this.folderModel.findOne({
@@ -167,15 +171,44 @@ export class FileService {
       where.user_id = user.id;
     }
 
-    if (!search && folderUuid === undefined) {
+    if (!hasSearch && folderUuid === undefined) {
       where.folder_id = null;
     }
 
-    if (search) {
+    if (hasSearch) {
       if (!folderUuid) {
         delete where.folder_id;
       }
-      where.name = { [Op.iLike]: `%${search}%` };
+
+      const dialect = this.fileModel.sequelize?.getDialect();
+      if (dialect === 'postgres') {
+        const tsvector = fn('to_tsvector', 'simple', fn('coalesce', col('name'), ''));
+        const tsquery = fn('websearch_to_tsquery', 'simple', normalizedSearch);
+        const similarityScore = fn(
+          'similarity',
+          fn('lower', col('name')),
+          fn('lower', normalizedSearch),
+        );
+
+        where[Op.and] = [
+          ...((where[Op.and] as any[]) ?? []),
+          {
+            [Op.or]: [
+              sequelizeWhere(tsvector, '@@', tsquery),
+              sequelizeWhere(similarityScore, { [Op.gte]: SEARCH_SIMILARITY_THRESHOLD }),
+            ],
+          },
+        ];
+
+        const escapedSearchTerm =
+          this.fileModel.sequelize?.escape(normalizedSearch) ??
+          `'${normalizedSearch.replace(/'/g, "''")}'`;
+        relevanceOrderExpression = literal(
+          `(ts_rank_cd(to_tsvector('simple', coalesce(name, '')), websearch_to_tsquery('simple', ${escapedSearchTerm})) + similarity(lower(name), lower(${escapedSearchTerm})))`,
+        );
+      } else {
+        where.name = { [Op.iLike]: `%${normalizedSearch}%` };
+      }
     }
 
     if (type) {
@@ -204,6 +237,9 @@ export class FileService {
       };
       const field = fieldMap[sort] || 'created_at';
       orderClause = [[field, order]];
+    }
+    if (relevanceOrderExpression) {
+      orderClause = [[relevanceOrderExpression, 'DESC'], ...orderClause];
     }
 
     return this.fileModel.findAll({
