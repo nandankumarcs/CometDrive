@@ -12,6 +12,8 @@ const mockShareService = {
   updateShare: jest.fn(),
   revoke: jest.fn(),
   findSharedWith: jest.fn(),
+  findOneByToken: jest.fn(),
+  getPublicDownload: jest.fn(),
 };
 
 describe('ShareController', () => {
@@ -121,6 +123,37 @@ describe('ShareController', () => {
         'folder-uuid',
       );
       expect(result).toEqual(new SuccessResponse('Shares retrieved successfully', shares));
+    });
+  });
+
+  describe('findOneByToken', () => {
+    it('should return shared file for public token', async () => {
+      const share = { token: 'token' };
+      mockShareService.findOneByToken.mockResolvedValue(share);
+
+      const result = await controller.findOneByToken('token', 'secret');
+
+      expect(mockShareService.findOneByToken).toHaveBeenCalledWith('token', 'secret');
+      expect(result).toEqual(new SuccessResponse('Shared file retrieved', share));
+    });
+  });
+
+  describe('downloadPublic', () => {
+    it('should stream the shared file download', async () => {
+      const stream = { pipe: jest.fn() };
+      const file = { name: 'file.txt', mime_type: 'text/plain' };
+      const res = { set: jest.fn() } as any;
+
+      mockShareService.getPublicDownload.mockResolvedValue({ file, stream });
+
+      await controller.downloadPublic('token', 'secret', undefined, res);
+
+      expect(mockShareService.getPublicDownload).toHaveBeenCalledWith('token', 'secret');
+      expect(res.set).toHaveBeenCalledWith({
+        'Content-Type': 'text/plain',
+        'Content-Disposition': 'attachment; filename="file.txt"',
+      });
+      expect(stream.pipe).toHaveBeenCalledWith(res);
     });
   });
 });

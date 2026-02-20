@@ -15,6 +15,8 @@ export interface Share {
   is_active: boolean;
   permission: SharePermission;
   expires_at: string | null;
+  download_enabled?: boolean;
+  has_password?: boolean;
   views: number;
   created_at: string;
   recipient?: {
@@ -73,12 +75,16 @@ export function useCreateShare() {
       resourceType,
       resourceUuid,
       expiresAt,
+      downloadEnabled,
+      password,
       recipientEmail,
       permission,
     }: {
       resourceType: ShareResourceType;
       resourceUuid: string;
       expiresAt?: Date;
+      downloadEnabled?: boolean;
+      password?: string;
       recipientEmail?: string;
       permission?: SharePermission;
     }) => {
@@ -86,6 +92,8 @@ export function useCreateShare() {
         fileId?: string;
         folderId?: string;
         expiresAt?: Date;
+        downloadEnabled?: boolean;
+        password?: string;
         recipientEmail?: string;
         permission?: SharePermission;
       } = {
@@ -106,10 +114,18 @@ export function useCreateShare() {
         payload.permission = permission;
       }
 
+      if (downloadEnabled !== undefined) {
+        payload.downloadEnabled = downloadEnabled;
+      }
+
+      if (password !== undefined) {
+        payload.password = password;
+      }
+
       const res = await api.post<{ data: Share }>('/shares', payload);
       return res.data.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shares'] });
       queryClient.invalidateQueries({ queryKey: ['shared-with-me'] });
     },
@@ -162,14 +178,20 @@ export function useUpdateShare() {
       shareUuid,
       permission,
       expiresAt,
+      downloadEnabled,
+      password,
     }: {
       shareUuid: string;
       permission?: SharePermission;
       expiresAt?: Date | null;
+      downloadEnabled?: boolean;
+      password?: string | null;
     }) => {
       const res = await api.patch<{ data: Share }>(`/shares/${shareUuid}`, {
         permission,
         expiresAt,
+        downloadEnabled,
+        password,
       });
       return res.data.data;
     },

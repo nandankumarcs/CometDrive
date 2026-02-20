@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import * as crypto from 'crypto';
@@ -8,6 +14,8 @@ import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
 import { CreateShareDto } from './dto/create-share.dto';
 import { UpdateShareDto } from './dto/update-share.dto';
+import { PasswordService } from '../auth/services';
+import { StorageService } from '../storage/storage.service';
 
 type ResourceType = 'file' | 'folder';
 
@@ -22,6 +30,8 @@ export class ShareService {
     private readonly folderModel: typeof FolderEntity,
     @InjectModel(UserEntity)
     private readonly userModel: typeof UserEntity,
+    private readonly passwordService: PasswordService,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(user: any, createShareDto: CreateShareDto) {
@@ -41,9 +51,15 @@ export class ShareService {
 
     const resource = await this.getOwnedResource(resourceType, resourceUuid, user);
     const recipientId = await this.resolveRecipientId(createShareDto.recipientEmail);
+    const downloadEnabled = createShareDto.downloadEnabled ?? true;
+    const password = createShareDto.password?.trim();
 
     if (!recipientId && permission === SharePermission.EDITOR) {
       throw new BadRequestException('Public shares can only be viewer permission');
+    }
+
+    if (recipientId && (createShareDto.downloadEnabled !== undefined || password)) {
+      throw new BadRequestException('Public link settings are only supported for public shares');
     }
 
     const whereClause: any = {
@@ -65,12 +81,18 @@ export class ShareService {
       if (createShareDto.expiresAt !== undefined) {
         existingShare.expires_at = createShareDto.expiresAt;
       }
+      if (createShareDto.downloadEnabled !== undefined) {
+        existingShare.download_enabled = downloadEnabled;
+      }
+      if (createShareDto.password !== undefined) {
+        await this.applyPasswordUpdate(existingShare, password);
+      }
       await existingShare.save();
-      return existingShare;
+      return this.serializeShare(existingShare);
     }
 
     const token = crypto.randomBytes(5).toString('hex');
-    return this.shareModel.create({
+    const newShare = await this.shareModel.create({
       token,
       file_id: resource.type === 'file' ? resource.id : null,
       folder_id: resource.type === 'folder' ? resource.id : null,
@@ -79,7 +101,10 @@ export class ShareService {
       expires_at: createShareDto.expiresAt,
       is_active: true,
       permission,
+      download_enabled: downloadEnabled,
+      password_hash: password ? await this.passwordService.hash(password) : null,
     });
+    return this.serializeShare(newShare);
   }
 
   // Legacy endpoint support: revoke all file shares created by user.
@@ -134,8 +159,23 @@ export class ShareService {
       share.expires_at = dto.expiresAt;
     }
 
+    if (dto.downloadEnabled !== undefined) {
+      if (share.recipient_id !== null) {
+        throw new BadRequestException('Public link settings are only supported for public shares');
+      }
+      share.download_enabled = dto.downloadEnabled;
+    }
+
+    if (dto.password !== undefined) {
+      if (share.recipient_id !== null) {
+        throw new BadRequestException('Public link settings are only supported for public shares');
+      }
+      const password = dto.password?.trim();
+      await this.applyPasswordUpdate(share, password);
+    }
+
     await share.save();
-    return share;
+    return this.serializeShare(share);
   }
 
   // Legacy endpoint support: returns one active share for a file.
@@ -165,21 +205,103 @@ export class ShareService {
       whereClause.folder_id = resource.id;
     }
 
-    return this.shareModel.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: UserEntity,
-          as: 'recipient',
-          attributes: ['uuid', 'first_name', 'last_name', 'email'],
-          required: false,
-        },
-      ],
-      order: [['created_at', 'DESC']],
-    });
+    return this.shareModel
+      .findAll({
+        where: whereClause,
+        include: [
+          {
+            model: UserEntity,
+            as: 'recipient',
+            attributes: ['uuid', 'first_name', 'last_name', 'email'],
+            required: false,
+          },
+        ],
+        order: [['created_at', 'DESC']],
+      })
+      .then((shares) => shares.map((share) => this.serializeShare(share)));
   }
 
-  async findOneByToken(token: string) {
+  async findOneByToken(token: string, password?: string) {
+    const share = await this.getPublicShare(token, password, false);
+    await share.increment('views');
+    return this.serializeShare(share);
+  }
+
+  async getPublicDownload(token: string, password?: string) {
+    const share = await this.getPublicShare(token, password, true);
+
+    if (!share.file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (share.download_enabled === false) {
+      throw new ForbiddenException('Downloads are disabled for this link');
+    }
+
+    const stream = await this.storageService.download(share.file.storage_path);
+    return { file: share.file, stream };
+  }
+
+  async findSharedWith(user: UserEntity) {
+    return this.shareModel
+      .findAll({
+        where: {
+          recipient_id: user.id,
+          is_active: true,
+          [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
+        },
+        include: [
+          {
+            model: FileEntity,
+            as: 'file',
+            attributes: ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'],
+            required: false,
+          },
+          {
+            model: FolderEntity,
+            as: 'folder',
+            attributes: ['uuid', 'name', 'created_at', 'updated_at'],
+            required: false,
+          },
+          {
+            model: UserEntity,
+            as: 'creator',
+            attributes: ['first_name', 'last_name', 'email'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+      })
+      .then((shares) => shares.map((share) => this.serializeShare(share)));
+  }
+
+  private serializeShare(share: Share | null) {
+    if (!share) return null;
+    const plain = typeof (share as any).toJSON === 'function' ? (share as any).toJSON() : share;
+    const { password_hash, ...rest } = plain as any;
+    return {
+      ...rest,
+      has_password: Boolean(password_hash),
+    };
+  }
+
+  private async applyPasswordUpdate(share: Share, password?: string | null) {
+    if (password === undefined) {
+      return;
+    }
+
+    if (!password) {
+      share.password_hash = null;
+      return;
+    }
+
+    share.password_hash = await this.passwordService.hash(password);
+  }
+
+  private async getPublicShare(token: string, password?: string, includeStoragePath = false) {
+    const fileAttributes = includeStoragePath
+      ? ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at', 'storage_path']
+      : ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'];
+
     const share = await this.shareModel.findOne({
       where: {
         token,
@@ -190,7 +312,7 @@ export class ShareService {
         {
           model: FileEntity,
           as: 'file',
-          attributes: ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'],
+          attributes: fileAttributes,
           required: false,
         },
         {
@@ -217,38 +339,20 @@ export class ShareService {
       throw new NotFoundException('Link expired');
     }
 
-    share.increment('views');
-    return share;
-  }
+    const normalizedPassword = password?.trim();
 
-  async findSharedWith(user: UserEntity) {
-    return this.shareModel.findAll({
-      where: {
-        recipient_id: user.id,
-        is_active: true,
-        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
-      },
-      include: [
-        {
-          model: FileEntity,
-          as: 'file',
-          attributes: ['uuid', 'name', 'mime_type', 'size', 'created_at', 'updated_at'],
-          required: false,
-        },
-        {
-          model: FolderEntity,
-          as: 'folder',
-          attributes: ['uuid', 'name', 'created_at', 'updated_at'],
-          required: false,
-        },
-        {
-          model: UserEntity,
-          as: 'creator',
-          attributes: ['first_name', 'last_name', 'email'],
-        },
-      ],
-      order: [['created_at', 'DESC']],
-    });
+    if (share.password_hash) {
+      if (!normalizedPassword) {
+        throw new UnauthorizedException('Password required');
+      }
+
+      const matches = await this.passwordService.compare(normalizedPassword, share.password_hash);
+      if (!matches) {
+        throw new UnauthorizedException('Invalid password');
+      }
+    }
+
+    return share;
   }
 
   private async resolveRecipientId(email?: string) {

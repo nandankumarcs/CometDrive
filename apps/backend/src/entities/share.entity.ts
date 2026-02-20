@@ -100,6 +100,21 @@ export class Share extends BaseEntity {
 
   @AllowNull(true)
   @Column({
+    field: 'password_hash',
+    type: DataType.STRING,
+  })
+  declare password_hash: string | null;
+
+  @Column({
+    field: 'download_enabled',
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  declare download_enabled: boolean;
+
+  @AllowNull(true)
+  @Column({
     field: 'expires_at',
     type: DataType.DATE,
   })

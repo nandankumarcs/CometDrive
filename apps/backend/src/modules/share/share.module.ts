@@ -6,9 +6,15 @@ import { Share } from '../../entities/share.entity';
 import { FileEntity } from '../../entities/file.entity';
 import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
+import { AuthModule } from '../auth/auth.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Share, FileEntity, FolderEntity, UserEntity])],
+  imports: [
+    SequelizeModule.forFeature([Share, FileEntity, FolderEntity, UserEntity]),
+    AuthModule,
+    StorageModule,
+  ],
   controllers: [ShareController],
   providers: [ShareService],
   exports: [ShareService],

@@ -5,7 +5,9 @@ import { Share, SharePermission } from '../../entities/share.entity';
 import { FileEntity } from '../../entities/file.entity';
 import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { PasswordService } from '../auth/services';
+import { StorageService } from '../storage/storage.service';
 
 const mockShareModel = {
   create: jest.fn(),
@@ -24,6 +26,15 @@ const mockUserModel = {
 
 const mockFolderModel = {
   findOne: jest.fn(),
+};
+
+const mockPasswordService = {
+  hash: jest.fn(),
+  compare: jest.fn(),
+};
+
+const mockStorageService = {
+  download: jest.fn(),
 };
 
 describe('ShareService', () => {
@@ -49,10 +60,20 @@ describe('ShareService', () => {
           provide: getModelToken(UserEntity),
           useValue: mockUserModel,
         },
+        {
+          provide: PasswordService,
+          useValue: mockPasswordService,
+        },
+        {
+          provide: StorageService,
+          useValue: mockStorageService,
+        },
       ],
     }).compile();
 
     service = module.get<ShareService>(ShareService);
+    mockPasswordService.hash.mockResolvedValue('hashed-password');
+    mockPasswordService.compare.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -88,7 +109,7 @@ describe('ShareService', () => {
           permission: SharePermission.VIEWER,
         }),
       );
-      expect(result).toEqual({ token: 'new-token' });
+      expect(result).toEqual(expect.objectContaining({ token: 'new-token' }));
     });
 
     it('should create a private share link if recipientEmail is provided and user exists', async () => {
@@ -186,7 +207,7 @@ describe('ShareService', () => {
 
       expect(existingShare.permission).toBe(SharePermission.EDITOR);
       expect(save).toHaveBeenCalled();
-      expect(result).toBe(existingShare);
+      expect(result).toEqual(expect.objectContaining({ permission: SharePermission.EDITOR }));
     });
   });
 
@@ -204,7 +225,9 @@ describe('ShareService', () => {
           where: expect.objectContaining({ recipient_id: 2, is_active: true }),
         }),
       );
-      expect(result).toEqual(sharedFiles);
+      expect(result).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: 1, has_password: false })]),
+      );
     });
   });
 
@@ -263,7 +286,7 @@ describe('ShareService', () => {
 
       expect(share.permission).toBe(SharePermission.EDITOR);
       expect(save).toHaveBeenCalled();
-      expect(result).toBe(share);
+      expect(result).toEqual(expect.objectContaining({ permission: SharePermission.EDITOR }));
     });
 
     it('should reject editor permission for public share', async () => {
@@ -305,7 +328,72 @@ describe('ShareService', () => {
 
       expect(share.expires_at).toEqual(expiresAt);
       expect(save).toHaveBeenCalled();
-      expect(result).toBe(share);
+      expect(result).toEqual(expect.objectContaining({ expires_at: expiresAt }));
+    });
+  });
+
+  describe('findOneByToken', () => {
+    it('should require password when link is protected', async () => {
+      const share = {
+        token: 'token',
+        recipient_id: null,
+        is_active: true,
+        expires_at: null,
+        password_hash: 'hashed-password',
+        increment: jest.fn(),
+      };
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      await expect(service.findOneByToken('token')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should reject invalid password', async () => {
+      const share = {
+        token: 'token',
+        recipient_id: null,
+        is_active: true,
+        expires_at: null,
+        password_hash: 'hashed-password',
+        increment: jest.fn(),
+      };
+      mockShareModel.findOne.mockResolvedValue(share);
+      mockPasswordService.compare.mockResolvedValueOnce(false);
+
+      await expect(service.findOneByToken('token', 'wrong')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should return share when password is valid', async () => {
+      const share = {
+        token: 'token',
+        recipient_id: null,
+        is_active: true,
+        expires_at: null,
+        password_hash: 'hashed-password',
+        increment: jest.fn(),
+      };
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      const result = await service.findOneByToken('token', 'correct');
+
+      expect(share.increment).toHaveBeenCalledWith('views');
+      expect(result).toEqual(expect.objectContaining({ token: 'token', has_password: true }));
+    });
+
+    it('should mark expired links inactive and reject access', async () => {
+      const save = jest.fn();
+      const share = {
+        token: 'token',
+        recipient_id: null,
+        is_active: true,
+        expires_at: new Date(Date.now() - 1000),
+        password_hash: null,
+        save,
+      };
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      await expect(service.findOneByToken('token')).rejects.toThrow(NotFoundException);
+      expect(share.is_active).toBe(false);
+      expect(save).toHaveBeenCalled();
     });
   });
 });

@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEmail, IsIn, IsOptional, IsUUID, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
 import { SharePermission } from '@src/entities';
 
 export class CreateShareDto {
@@ -34,4 +43,14 @@ export class CreateShareDto {
   @IsOptional()
   @IsIn([SharePermission.VIEWER, SharePermission.EDITOR])
   permission?: SharePermission;
+
+  @ApiProperty({ example: true, required: false })
+  @IsOptional()
+  @IsBoolean()
+  downloadEnabled?: boolean;
+
+  @ApiProperty({ example: 'MySecret123', required: false })
+  @IsOptional()
+  @IsString()
+  password?: string;
 }

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsOptional } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { SharePermission } from '@src/entities';
 
 export class UpdateShareDto {
@@ -14,6 +14,17 @@ export class UpdateShareDto {
 
   @ApiPropertyOptional({ example: '2023-12-31T23:59:59Z' })
   @IsOptional()
+  @ValidateIf((dto: UpdateShareDto) => dto.expiresAt !== null && dto.expiresAt !== undefined)
   @IsDateString()
-  expiresAt?: Date;
+  expiresAt?: Date | null;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  downloadEnabled?: boolean;
+
+  @ApiPropertyOptional({ example: 'MySecret123' })
+  @IsOptional()
+  @IsString()
+  password?: string | null;
 }

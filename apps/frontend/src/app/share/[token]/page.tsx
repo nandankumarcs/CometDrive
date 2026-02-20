@@ -1,9 +1,15 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import api from '../../../lib/api'; // Fix import path based on location
+import axios from 'axios';
 import { Loader2, Download, File as FileIcon, AlertCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
+
+const publicApi = axios.create({
+  baseURL: '/api/v1',
+  headers: { 'Content-Type': 'application/json' },
+});
 
 interface SharedFile {
   uuid: string; // share uuid
@@ -22,6 +28,8 @@ interface SharedFile {
   };
   is_active: boolean;
   expires_at: string | null;
+  download_enabled?: boolean;
+  has_password?: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -35,11 +43,15 @@ function formatSize(bytes: number): string {
 export default function PublicSharePage() {
   const params = useParams();
   const token = params.token as string;
+  const [password, setPassword] = useState('');
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const {
     data: share,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['public-share', token],
     queryFn: async () => {
@@ -47,35 +59,52 @@ export default function PublicSharePage() {
       // or we use a separate fetch instance.
       // Our api client attaches token if present, but for public page user might not have token.
       // That's fine.
-      const res = await api.get<{ data: SharedFile }>(`/shares/public/${token}`);
-      return res.data.data;
+      try {
+        const res = await publicApi.get<{ data: SharedFile }>(`/shares/public/${token}`, {
+          headers: password ? { 'x-share-password': password } : undefined,
+        });
+        setNeedsPassword(false);
+        setPasswordError(null);
+        return res.data.data;
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          setNeedsPassword(true);
+          setPasswordError(err.response?.data?.message ?? 'Password required');
+          return null;
+        }
+        throw err;
+      }
     },
-    enabled: !!token,
+    enabled: !!token && !needsPassword,
     retry: false,
   });
 
   const handleDownload = async () => {
     if (!share) return;
     try {
-      // We can use the same download endpoint as authenticated users if it allows public access via share token?
-      // Or we need a specific public download endpoint?
-      // The implementation plan didn't specify a public download endpoint, just "returns file metadata".
-      // We need a way to download the file content.
-      // Easiest is to add a public download endpoint in ShareController, or reuse FileController.download but with share token.
+      if (share.download_enabled === false) {
+        return;
+      }
 
-      // Let's assume for now we use a direct download link or a new endpoint.
-      // Re-reading plan: "GET /shares/public/:token Returns file metadata and download URL" (in refined plan).
-      // But my ShareController implementation just returned `share` object with file metadata.
-      // `FileController` has `download`. It probably requires auth.
+      const res = await publicApi.get(`/shares/public/${token}/download`, {
+        responseType: 'blob',
+        headers: password ? { 'x-share-password': password } : undefined,
+      });
 
-      // I should update ShareController to return a pre-signed URL or stream the file.
-      // Or simply: Add `GET /shares/public/:token/download` endpoint.
-
-      // For now, let's implement the UI and then fix the download logic.
-      // If I click download, I can trigger a browser download from an endpoint.
-
-      window.open(`${api.defaults.baseURL}/shares/public/${token}/download`, '_blank');
+      const blobUrl = window.URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = share.file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
     } catch (e) {
+      if (axios.isAxiosError(e) && e.response?.status === 401) {
+        setNeedsPassword(true);
+        setPasswordError(e.response?.data?.message ?? 'Password required');
+        return;
+      }
       console.error('Download failed', e);
     }
   };
@@ -86,6 +115,55 @@ export default function PublicSharePage() {
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-4" />
           <p className="text-gray-500">Loading shared file...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (needsPassword && !share) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+          <div className="w-16 h-16 bg-yellow-50 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+            Password Required
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 text-center">
+            This link is protected. Enter the password to continue.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!password.trim()) {
+                setPasswordError('Enter the password to continue.');
+                return;
+              }
+              refetch();
+            }}
+            className="space-y-3"
+          >
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError(null);
+              }}
+              className="w-full px-4 py-3 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            {passwordError && (
+              <p className="text-xs text-red-600 dark:text-red-400">{passwordError}</p>
+            )}
+            <button
+              type="submit"
+              className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors"
+            >
+              Unlock
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -173,10 +251,11 @@ export default function PublicSharePage() {
 
               <button
                 onClick={handleDownload}
-                className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2"
+                disabled={share.download_enabled === false}
+                className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Download className="w-5 h-5" />
-                Download File
+                {share.download_enabled === false ? 'Downloads Disabled' : 'Download File'}
               </button>
             </div>
           </div>

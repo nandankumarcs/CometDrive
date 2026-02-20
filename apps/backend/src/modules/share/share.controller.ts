@@ -1,10 +1,23 @@
-import { Controller, Post, Delete, Get, Body, Param, Request, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Body,
+  Param,
+  Request,
+  Patch,
+  Headers,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ShareService } from './share.service';
 import { CreateShareDto } from './dto/create-share.dto';
 import { UpdateShareDto } from './dto/update-share.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { SuccessResponse } from '../../commons/dtos/success-response.dto';
+import { Response } from 'express';
 
 @ApiTags('shares')
 @Controller({ path: 'shares', version: '1' })
@@ -90,8 +103,31 @@ export class ShareController {
   @Get('public/:token')
   @Public() // Bypass Auth Guard
   @ApiOperation({ summary: 'Get shared file info by token (public)' })
-  async findOneByToken(@Param('token') token: string) {
-    const share = await this.shareService.findOneByToken(token);
+  async findOneByToken(
+    @Param('token') token: string,
+    @Headers('x-share-password') password?: string,
+  ) {
+    const share = await this.shareService.findOneByToken(token, password);
     return new SuccessResponse('Shared file retrieved', share);
+  }
+
+  @Get('public/:token/download')
+  @Public() // Bypass Auth Guard
+  @ApiOperation({ summary: 'Download shared file by token (public)' })
+  async downloadPublic(
+    @Param('token') token: string,
+    @Headers('x-share-password') passwordHeader: string | undefined,
+    @Query('password') passwordQuery: string | undefined,
+    @Res() res: Response,
+  ) {
+    const password = passwordHeader ?? passwordQuery;
+    const { file, stream } = await this.shareService.getPublicDownload(token, password);
+
+    res.set({
+      'Content-Type': file.mime_type,
+      'Content-Disposition': `attachment; filename="${file.name}"`,
+    });
+
+    stream.pipe(res);
   }
 }
