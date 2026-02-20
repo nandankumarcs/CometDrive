@@ -4,6 +4,7 @@ import { User, Moon, Sun, HardDrive, CreditCard, Shield } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
+import { useFeatureFlags } from '../../../store/feature-flags.store';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -20,6 +21,7 @@ function formatBytes(bytes: number, decimals = 2) {
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const { theme, setTheme } = useTheme();
+  const { isEnabled } = useFeatureFlags();
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch
@@ -148,18 +150,28 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Security Section (Placeholder) */}
-        <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700 overflow-hidden opacity-50 cursor-not-allowed">
+        {/* Security Section (Feature Flagged Placeholder) */}
+        <section
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700 overflow-hidden ${
+            isEnabled('twoFactorAuth') ? '' : 'opacity-50 cursor-not-allowed'
+          }`}
+        >
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
               <Shield className="w-5 h-5 mr-2 text-red-500" />
-              Security (Coming Soon)
+              Security {isEnabled('twoFactorAuth') ? '' : '(Coming Soon)'}
             </h2>
           </div>
           <div className="p-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Two-factor authentication and password management features will be available soon.
-            </p>
+            {isEnabled('twoFactorAuth') ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Two-factor authentication features are enabled for this environment.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Two-factor authentication and password management features will be available soon.
+              </p>
+            )}
           </div>
         </section>
       </div>

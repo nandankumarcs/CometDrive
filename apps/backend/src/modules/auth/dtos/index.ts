@@ -5,3 +5,6 @@ export * from './forgot-password.dto';
 export * from './reset-password.dto';
 export * from './change-password.dto';
 export * from './register-with-token.dto';
+export * from './two-factor-setup.dto';
+export * from './two-factor-verify.dto';
+export * from './two-factor-disable.dto';

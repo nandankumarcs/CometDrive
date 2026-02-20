@@ -25,6 +25,9 @@ import { FolderModule } from './modules/folder/folder.module';
 import { FileModule } from './modules/file/file.module';
 import { ShareModule } from './modules/share/share.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { CommentModule } from './modules/comment/comment.module';
+import { ApprovalModule } from './modules/approval/approval.module';
 
 // Entities for guards
 import { SequelizeModule as SequelizeFeatureModule } from '@nestjs/sequelize';
@@ -135,6 +138,9 @@ import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
     FileModule,
     ShareModule,
     AuditModule,
+    NotificationModule,
+    CommentModule,
+    ApprovalModule,
   ],
   controllers: [AppController],
   providers: [
