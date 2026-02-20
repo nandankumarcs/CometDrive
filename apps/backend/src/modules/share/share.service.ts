@@ -7,6 +7,7 @@ import { FileEntity } from '../../entities/file.entity';
 import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
 import { CreateShareDto } from './dto/create-share.dto';
+import { UpdateShareDto } from './dto/update-share.dto';
 
 type ResourceType = 'file' | 'folder';
 
@@ -107,6 +108,34 @@ export class ShareService {
     share.is_active = false;
     await share.save();
     return { success: true };
+  }
+
+  async updateShare(user: UserEntity, shareUuid: string, dto: UpdateShareDto) {
+    const share = await this.shareModel.findOne({
+      where: {
+        uuid: shareUuid,
+        created_by: user.id,
+        is_active: true,
+      },
+    });
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    if (dto.permission) {
+      if (share.recipient_id === null && dto.permission === SharePermission.EDITOR) {
+        throw new BadRequestException('Public shares can only be viewer permission');
+      }
+      share.permission = dto.permission;
+    }
+
+    if (dto.expiresAt !== undefined) {
+      share.expires_at = dto.expiresAt;
+    }
+
+    await share.save();
+    return share;
   }
 
   // Legacy endpoint support: returns one active share for a file.

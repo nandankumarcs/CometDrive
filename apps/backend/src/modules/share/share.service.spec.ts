@@ -241,4 +241,71 @@ describe('ShareService', () => {
       expect(save).toHaveBeenCalled();
     });
   });
+
+  describe('updateShare', () => {
+    it('should update permission for a private share', async () => {
+      const user = { id: 1 } as UserEntity;
+      const save = jest.fn();
+      const share = {
+        uuid: 'share-uuid',
+        created_by: 1,
+        is_active: true,
+        recipient_id: 2,
+        permission: SharePermission.VIEWER,
+        save,
+      };
+
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      const result = await service.updateShare(user, 'share-uuid', {
+        permission: SharePermission.EDITOR,
+      });
+
+      expect(share.permission).toBe(SharePermission.EDITOR);
+      expect(save).toHaveBeenCalled();
+      expect(result).toBe(share);
+    });
+
+    it('should reject editor permission for public share', async () => {
+      const user = { id: 1 } as UserEntity;
+      const save = jest.fn();
+      const share = {
+        uuid: 'share-uuid',
+        created_by: 1,
+        is_active: true,
+        recipient_id: null,
+        permission: SharePermission.VIEWER,
+        save,
+      };
+
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      await expect(
+        service.updateShare(user, 'share-uuid', { permission: SharePermission.EDITOR }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update expiry when provided', async () => {
+      const user = { id: 1 } as UserEntity;
+      const save = jest.fn();
+      const share = {
+        uuid: 'share-uuid',
+        created_by: 1,
+        is_active: true,
+        recipient_id: 2,
+        permission: SharePermission.VIEWER,
+        expires_at: null,
+        save,
+      };
+      const expiresAt = new Date('2030-01-01T00:00:00Z');
+
+      mockShareModel.findOne.mockResolvedValue(share);
+
+      const result = await service.updateShare(user, 'share-uuid', { expiresAt });
+
+      expect(share.expires_at).toEqual(expiresAt);
+      expect(save).toHaveBeenCalled();
+      expect(result).toBe(share);
+    });
+  });
 });

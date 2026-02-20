@@ -153,3 +153,28 @@ export function useRevokeShare() {
     },
   });
 }
+
+export function useUpdateShare() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shareUuid,
+      permission,
+      expiresAt,
+    }: {
+      shareUuid: string;
+      permission?: SharePermission;
+      expiresAt?: Date | null;
+    }) => {
+      const res = await api.patch<{ data: Share }>(`/shares/${shareUuid}`, {
+        permission,
+        expiresAt,
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shares'] });
+    },
+  });
+}

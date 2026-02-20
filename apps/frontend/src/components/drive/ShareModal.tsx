@@ -7,6 +7,7 @@ import {
   useCreateShare,
   useGetShares,
   useRevokeShare,
+  useUpdateShare,
 } from '../../hooks/use-share';
 
 export function ShareModal() {
@@ -24,6 +25,7 @@ export function ShareModal() {
   );
   const createShare = useCreateShare();
   const revokeShare = useRevokeShare();
+  const updateShare = useUpdateShare();
 
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState<SharePermission>('viewer');
@@ -211,12 +213,23 @@ export function ShareModal() {
                             {share.recipient?.email ?? 'Email unavailable'}
                           </p>
                         </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                          {share.permission === 'editor' ? 'Editor' : 'Viewer'}
-                        </span>
+                        <select
+                          value={share.permission}
+                          onChange={(e) =>
+                            updateShare.mutate({
+                              shareUuid: share.uuid,
+                              permission: e.target.value as SharePermission,
+                            })
+                          }
+                          className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          disabled={updateShare.isPending}
+                        >
+                          <option value="viewer">Viewer</option>
+                          <option value="editor">Editor</option>
+                        </select>
                         <button
                           onClick={() => handleRevoke(share.uuid)}
-                          disabled={revokeShare.isPending}
+                          disabled={revokeShare.isPending || updateShare.isPending}
                           className="text-sm text-red-600 hover:text-red-700 inline-flex items-center gap-1 disabled:opacity-60"
                         >
                           <Trash2 className="w-4 h-4" />

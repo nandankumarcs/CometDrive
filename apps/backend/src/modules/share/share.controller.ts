@@ -1,7 +1,8 @@
-import { Controller, Post, Delete, Get, Body, Param, Request } from '@nestjs/common';
+import { Controller, Post, Delete, Get, Body, Param, Request, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ShareService } from './share.service';
 import { CreateShareDto } from './dto/create-share.dto';
+import { UpdateShareDto } from './dto/update-share.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { SuccessResponse } from '../../commons/dtos/success-response.dto';
 
@@ -24,6 +25,18 @@ export class ShareController {
   async revokeByShareUuid(@Request() req: any, @Param('shareUuid') shareUuid: string) {
     await this.shareService.revokeByShareUuid(req.user, shareUuid);
     return new SuccessResponse('Share revoked successfully');
+  }
+
+  @Patch(':shareUuid')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a share (permission or expiry)' })
+  async updateShare(
+    @Request() req: any,
+    @Param('shareUuid') shareUuid: string,
+    @Body() dto: UpdateShareDto,
+  ) {
+    const updated = await this.shareService.updateShare(req.user, shareUuid, dto);
+    return new SuccessResponse('Share updated successfully', updated);
   }
 
   @Delete('file/:fileUuid')

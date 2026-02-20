@@ -9,6 +9,7 @@ const mockShareService = {
   getShareByFolder: jest.fn(),
   getSharesByResource: jest.fn(),
   revokeByShareUuid: jest.fn(),
+  updateShare: jest.fn(),
   revoke: jest.fn(),
   findSharedWith: jest.fn(),
 };
@@ -88,6 +89,21 @@ describe('ShareController', () => {
 
       expect(mockShareService.revokeByShareUuid).toHaveBeenCalledWith(req.user, shareUuid);
       expect(result).toEqual(new SuccessResponse('Share revoked successfully'));
+    });
+  });
+
+  describe('updateShare', () => {
+    it('should update a share', async () => {
+      const req = { user: { id: 1 } };
+      const shareUuid = 'share-uuid';
+      const dto = { permission: 'editor' };
+      const updated = { uuid: shareUuid, permission: 'editor' };
+      mockShareService.updateShare.mockResolvedValue(updated);
+
+      const result = await controller.updateShare(req, shareUuid, dto);
+
+      expect(mockShareService.updateShare).toHaveBeenCalledWith(req.user, shareUuid, dto);
+      expect(result).toEqual(new SuccessResponse('Share updated successfully', updated));
     });
   });
 
