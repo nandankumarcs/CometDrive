@@ -32,7 +32,7 @@ export class LocalStorageStrategy implements StorageInterface {
       await fs.promises.writeFile(filePath, file.buffer);
       this.logger.log(`File uploaded locally: ${filePath}`);
       return key; // For local storage, key is the relative path
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error uploading file locally: ${error.message}`, error.stack);
       throw error;
     }
@@ -52,7 +52,7 @@ export class LocalStorageStrategy implements StorageInterface {
       try {
         await fs.promises.unlink(filePath);
         this.logger.log(`File deleted locally: ${filePath}`);
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(`Error deleting file locally: ${error.message}`, error.stack);
         throw error;
       }

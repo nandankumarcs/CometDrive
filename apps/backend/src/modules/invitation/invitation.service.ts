@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { InvitationEntity, UserEntity, UserTypeEntity } from '@src/entities';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -8,8 +8,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class InvitationService {
-  private readonly logger = new Logger(InvitationService.name);
-
   constructor(
     @InjectModel(InvitationEntity)
     private readonly invitationModel: typeof InvitationEntity,

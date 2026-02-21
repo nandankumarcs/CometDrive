@@ -95,8 +95,8 @@ export class FolderService {
         ];
 
         const escapedSearchTerm =
-          this.folderModel.sequelize?.escape(normalizedSearch) ??
-          `'${normalizedSearch.replace(/'/g, "''")}'`;
+          FolderEntity.sequelize?.escape(normalizedSearch!) ??
+          `'${normalizedSearch!.replace(/'/g, "''")}'`;
         relevanceOrderExpression = literal(
           `(ts_rank_cd(to_tsvector('simple', coalesce(name, '')), websearch_to_tsquery('simple', ${escapedSearchTerm})) + similarity(lower(name), lower(${escapedSearchTerm})))`,
         );
@@ -356,7 +356,7 @@ export class FolderService {
         return true;
       }
 
-      const currentFolder = await this.folderModel.findByPk(currentFolderId, {
+      const currentFolder: FolderEntity | null = await this.folderModel.findByPk(currentFolderId, {
         attributes: ['id', 'parent_id'],
       });
 

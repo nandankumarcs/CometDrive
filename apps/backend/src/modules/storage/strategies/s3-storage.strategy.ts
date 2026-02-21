@@ -19,10 +19,10 @@ export class S3StorageStrategy implements StorageInterface {
 
   constructor(private readonly configService: ConfigService<AllConfigType>) {
     const region = this.configService.get('file.awsS3Region', { infer: true });
-    const accessKeyId = this.configService.get('file.awsAccessKeyId', { infer: true });
-    const secretAccessKey = this.configService.get('file.awsSecretAccessKey', { infer: true });
+    const accessKeyId = this.configService.get('file.accessKeyId', { infer: true });
+    const secretAccessKey = this.configService.get('file.secretAccessKey', { infer: true });
 
-    this.bucketName = this.configService.get('file.awsDefaultS3Bucket', { infer: true });
+    this.bucketName = this.configService.get('file.awsDefaultS3Bucket', { infer: true }) || '';
 
     if (!region || !accessKeyId || !secretAccessKey || !this.bucketName) {
       this.logger.warn('AWS S3 credentials not fully configured. S3Strategy might fail.');
@@ -49,7 +49,7 @@ export class S3StorageStrategy implements StorageInterface {
       await this.s3Client.send(command);
       this.logger.log(`File uploaded to S3: ${key}`);
       return key;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error uploading file to S3: ${error.message}`, error.stack);
       throw error;
     }
@@ -64,7 +64,7 @@ export class S3StorageStrategy implements StorageInterface {
     try {
       const response = await this.s3Client.send(command);
       return response.Body as Readable;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error downloading file from S3: ${error.message}`, error.stack);
       throw error;
     }
@@ -79,7 +79,7 @@ export class S3StorageStrategy implements StorageInterface {
     try {
       await this.s3Client.send(command);
       this.logger.log(`File deleted from S3: ${key}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error deleting file from S3: ${error.message}`, error.stack);
       throw error;
     }

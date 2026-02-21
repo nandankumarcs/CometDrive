@@ -12,10 +12,7 @@ import { SmsModule } from '@crownstack/sms';
 import { CommonsModule } from './commons/commons.module';
 import { RedisModule } from './redis';
 import { RateLimiterGuard } from '@src/commons/guards';
-
-// Modules
-import { LoggerModule } from 'nestjs-pino';
-import { AuthModule, JwtAuthGuard } from './modules/auth';
+import { UserEntity, SessionEntity, AuditLogEntity } from '@src/entities';
 import { UserModule } from './modules/user';
 import { OrganizationModule } from './modules/organization';
 import { UserTypeModule } from './modules/user-type';
@@ -29,9 +26,9 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { CommentModule } from './modules/comment/comment.module';
 import { ApprovalModule } from './modules/approval/approval.module';
 
-// Entities for guards
-import { SequelizeModule as SequelizeFeatureModule } from '@nestjs/sequelize';
-import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
+// Modules
+import { LoggerModule } from 'nestjs-pino';
+import { AuthModule, JwtAuthGuard } from './modules/auth';
 
 /**
  * Application Root Module
@@ -88,7 +85,7 @@ import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
     }),
 
     // Register entities for global guards
-    SequelizeFeatureModule.forFeature([SessionEntity, UserEntity, AuditLogEntity]),
+    SequelizeModule.forFeature([SessionEntity, UserEntity, AuditLogEntity]),
 
     // Mailer Package (only for sending)
     MailerModule.forRootAsync({
@@ -144,12 +141,6 @@ import { SessionEntity, UserEntity, AuditLogEntity } from './entities';
   ],
   controllers: [AppController],
   providers: [
-    // Global JWT Auth Guard - protects all routes by default
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    // Global Rate Limiter Guard - 100 req/min per IP
     {
       provide: APP_GUARD,
       useClass: RateLimiterGuard,

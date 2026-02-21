@@ -16,6 +16,7 @@ import { CreateShareDto } from './dto/create-share.dto';
 import { UpdateShareDto } from './dto/update-share.dto';
 import { PasswordService } from '../auth/services';
 import { StorageService } from '../storage/storage.service';
+import { NotificationService } from '../notification/notification.service';
 
 type ResourceType = 'file' | 'folder';
 
@@ -32,6 +33,7 @@ export class ShareService {
     private readonly userModel: typeof UserEntity,
     private readonly passwordService: PasswordService,
     private readonly storageService: StorageService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(user: any, createShareDto: CreateShareDto) {
@@ -104,6 +106,16 @@ export class ShareService {
       download_enabled: downloadEnabled,
       password_hash: password ? await this.passwordService.hash(password) : null,
     });
+
+    if (recipientId) {
+      await this.notificationService.create({
+        user_id: recipientId,
+        type: resourceType === 'file' ? 'file_shared' : 'folder_shared',
+        title: `${user.first_name || 'Someone'} shared a ${resourceType} with you`,
+        body: `You now have access to "${resource.name}".`,
+      });
+    }
+
     return this.serializeShare(newShare);
   }
 
@@ -376,7 +388,7 @@ export class ShareService {
         throw new NotFoundException('File not found');
       }
       this.ensureSharePermission(file.user_id, user);
-      return { type: 'file' as const, id: file.id };
+      return { type: 'file' as const, id: file.id, name: file.name };
     }
 
     const folder = await this.folderModel.findOne({ where: { uuid: resourceUuid } });
@@ -384,7 +396,7 @@ export class ShareService {
       throw new NotFoundException('Folder not found');
     }
     this.ensureSharePermission(folder.user_id, user);
-    return { type: 'folder' as const, id: folder.id };
+    return { type: 'folder' as const, id: folder.id, name: folder.name };
   }
 
   private ensureSharePermission(ownerUserId: number, user: any) {

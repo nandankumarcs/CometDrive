@@ -8,7 +8,7 @@ export type FeatureFlagKey =
 export type FeatureFlags = Record<FeatureFlagKey, boolean>;
 
 const DEFAULT_FLAGS: FeatureFlags = {
-  notifications: false,
+  notifications: true,
   resourceComments: false,
   approvals: false,
   fileVersions: false,

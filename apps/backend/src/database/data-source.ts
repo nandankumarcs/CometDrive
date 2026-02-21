@@ -1,14 +1,15 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// In CommonJS, __dirname is available. In ESM, we'd use import.meta.url.
+// Since this project uses ts-node with CommonJS mostly, we'll fallback to process.cwd() if needed.
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file if it exists (optional)
 // In production, environment variables are typically set directly in the environment
-const envPath = path.join(__dirname, '../../.env');
+const envPath = path.join(process.cwd(), '.env');
 if (fs.existsSync(envPath)) {
   console.log('ℹ️ Loading environment variables from .env file');
   dotenv.config({ path: envPath });

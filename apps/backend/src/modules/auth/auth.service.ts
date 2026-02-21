@@ -19,7 +19,9 @@ import {
   RegisterWithTokenDto,
 } from './dtos';
 import { JwtTokens } from './interfaces';
-import { PasswordService, TokenService, SessionService } from './services';
+import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
+import { SessionService } from './services/session.service';
 import { InvitationService } from '../invitation/invitation.service';
 
 /**
@@ -186,20 +188,6 @@ export class AuthService {
     delete userResponse.password;
 
     return { user: userResponse, ...tokens };
-  }
-
-  async getMe(userId: number) {
-    const user = await this.userModel.findByPk(userId, {
-      include: [UserTypeEntity, OrganizationEntity],
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const userResponse = user.toJSON() as Record<string, unknown>;
-    delete userResponse.password;
-    return userResponse;
   }
 
   async getMe(userId: number) {

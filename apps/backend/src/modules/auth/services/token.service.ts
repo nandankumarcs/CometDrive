@@ -73,7 +73,7 @@ export class TokenService implements ITokenService {
       }
 
       return decoded as unknown as JwtPayload;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedException('Token has expired');
       }

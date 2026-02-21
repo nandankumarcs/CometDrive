@@ -8,12 +8,14 @@ import { FolderEntity } from '../../entities/folder.entity';
 import { UserEntity } from '../../entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([Share, FileEntity, FolderEntity, UserEntity]),
     AuthModule,
     StorageModule,
+    NotificationModule,
   ],
   controllers: [ShareController],
   providers: [ShareService],

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { StorageInterface } from './interfaces/storage.interface';
 import { LocalStorageStrategy } from './strategies/local-storage.strategy';
 import { S3StorageStrategy } from './strategies/s3-storage.strategy';
@@ -33,7 +33,7 @@ export class StorageService {
 
   getBucket(): string | null {
     if (this.driver === 's3') {
-      return this.configService.get('file.s3.bucket', { infer: true }) || null;
+      return this.configService.get('file.awsDefaultS3Bucket', { infer: true }) || null;
     }
     return null;
   }

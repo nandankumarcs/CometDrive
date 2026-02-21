@@ -2,7 +2,9 @@ import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { PasswordService, TokenService, SessionService } from './services';
+import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
+import { SessionService } from './services/session.service';
 import { JwtAuthGuard, RolesGuard } from './guards';
 import { InvitationModule } from '../invitation/invitation.module';
 import {

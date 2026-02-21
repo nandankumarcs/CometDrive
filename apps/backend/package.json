@@ -7,7 +7,8 @@
     "migration:rollback": "ts-node src/database/run-migrations.ts down",
     "migration:status": "ts-node src/database/run-migrations.ts status",
     "migration:fresh": "ts-node src/database/run-migrations.ts fresh",
-    "seed:run": "ts-node src/database/run-migrations.ts seed"
+    "seed:run": "ts-node src/database/run-migrations.ts seed",
+    "seed:notifications": "TS_NODE_PROJECT=tsconfig.app.json TS_NODE_TRANSPILE_ONLY=true node -r ts-node/register -r tsconfig-paths/register src/check-seed.ts"
   },
   "nx": {
     "targets": {

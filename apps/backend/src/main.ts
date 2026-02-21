@@ -2,6 +2,7 @@
  * This is not a production server yet!
  * This is only a minimal backend to get started.
  */
+import 'reflect-metadata';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
@@ -12,6 +13,7 @@ import { useContainer } from 'class-validator';
 import * as cookieParser from 'cookie-parser';
 import { Request } from 'express';
 import { AppModule } from './app.module';
+import { JwtAuthGuard } from './modules/auth';
 import { setupSwagger } from './swagger';
 import { validationOptions } from './commons/utils';
 import { ExceptionResponseFilter } from './commons/filters';
@@ -97,6 +99,9 @@ async function bootstrap() {
 
   // Global Filters
   app.useGlobalFilters(new ExceptionResponseFilter());
+
+  // Global Guards
+  app.useGlobalGuards(app.get(JwtAuthGuard));
 
   // starting the server
   const port = configService.getOrThrow('app.port', { infer: true });
