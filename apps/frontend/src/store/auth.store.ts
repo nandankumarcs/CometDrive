@@ -12,7 +12,13 @@ interface AuthState {
   error: string | null;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (token: string, firstName: string, lastName: string, password: string) => Promise<void>;
+  register: (
+    firstName: string,
+    lastName: string,
+    email: string,
+    organizationName: string,
+    password: string,
+  ) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   _hasHydrated: boolean;
@@ -49,13 +55,14 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        register: async (token, firstName, lastName, password) => {
+        register: async (firstName, lastName, email, organizationName, password) => {
           set({ isLoading: true, error: null });
           try {
-            const res = await api.post<RegisterResponse>('/auth/register-with-token', {
-              token,
+            const res = await api.post<RegisterResponse>('/auth/register', {
               firstName,
               lastName,
+              email,
+              organizationName,
               password,
             });
             const { accessToken, refreshToken, user } = res.data.data;

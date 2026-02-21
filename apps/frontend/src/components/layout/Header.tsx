@@ -1,4 +1,4 @@
-import { Search, Bell, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';

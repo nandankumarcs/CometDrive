@@ -52,6 +52,7 @@ const mockUserTypeModel = {
 
 const mockOrganizationModel = {
   findByPk: jest.fn(),
+  create: jest.fn(),
 };
 
 const mockPasswordResetModel = {
@@ -87,6 +88,66 @@ describe('AuthService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('register', () => {
+    const dto = {
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane@example.com',
+      password: 'password123',
+      organizationName: 'Acme Corp',
+    };
+
+    const newOrganization = { id: 10, name: 'Acme Corp' };
+    const defaultUserType = { id: 2, code: 'USER' };
+
+    const newUser = {
+      id: 200,
+      uuid: 'uuid-200',
+      email: 'jane@example.com',
+      first_name: 'Jane',
+      organization_id: 10,
+      user_type_id: 2,
+    };
+
+    beforeEach(() => {
+      mockUserModel.findOne.mockResolvedValue(null);
+      mockOrganizationModel.create.mockResolvedValue(newOrganization);
+      mockUserTypeModel.findOne.mockResolvedValue(defaultUserType);
+      mockUserModel.create.mockResolvedValue(newUser);
+      mockSessionService.create.mockResolvedValue({ hash: 'session_hash' });
+      mockTokenService.generateTokens.mockReturnValue({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      });
+      mockUserModel.findByPk.mockResolvedValue(newUser);
+    });
+
+    it('should register a new user and create an organization', async () => {
+      const result = await service.register(dto as any);
+
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({
+        where: { email: 'jane@example.com', deleted_at: null },
+      });
+      expect(mockOrganizationModel.create).toHaveBeenCalledWith({ name: 'Acme Corp' });
+      expect(mockUserTypeModel.findOne).toHaveBeenCalledWith({
+        where: { code: 'USER', is_active: true },
+      });
+      expect(mockPasswordService.hash).toHaveBeenCalledWith('password123');
+      expect(mockUserModel.create).toHaveBeenCalled();
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith('jane@example.com', {
+        name: 'Jane',
+      });
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('user');
+    });
+
+    it('should throw ConflictException if email is already registered', async () => {
+      mockUserModel.findOne.mockResolvedValue({ id: 999 });
+
+      await expect(service.register(dto as any)).rejects.toThrow(ConflictException);
+    });
   });
 
   describe('registerWithToken', () => {

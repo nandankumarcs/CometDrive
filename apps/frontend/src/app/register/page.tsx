@@ -6,14 +6,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '../../schemas/auth.schema';
 import { useAuthStore } from '../../store/auth.store';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Cloud, Loader2 } from 'lucide-react';
 
 function RegisterForm() {
   const { register: registerUser, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -34,7 +32,13 @@ function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     clearError();
     try {
-      await registerUser(token, data.firstName, data.lastName, data.password);
+      await registerUser(
+        data.firstName,
+        data.lastName,
+        data.email,
+        data.organizationName,
+        data.password,
+      );
       router.push('/drive');
     } catch {
       // Error handled in store
@@ -59,12 +63,6 @@ function RegisterForm() {
             Complete your registration to get started with CometDrive
           </p>
         </div>
-
-        {!token && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 px-4 py-3 rounded-lg text-sm">
-            No invitation token found. Please use the link from your invitation email.
-          </div>
-        )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {error && (
@@ -116,6 +114,48 @@ function RegisterForm() {
             </div>
 
             <div>
+              <label htmlFor="email" className="form-input-label">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="john.doe@example.com"
+                className={`form-input-field ${
+                  errors.email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                }`}
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-500 font-medium">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="organizationName" className="form-input-label">
+                Workspace Name
+              </label>
+              <input
+                id="organizationName"
+                type="text"
+                autoComplete="organization"
+                placeholder="Acme Corp"
+                className={`form-input-field ${
+                  errors.organizationName
+                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                    : ''
+                }`}
+                {...register('organizationName')}
+              />
+              {errors.organizationName && (
+                <p className="mt-1 text-xs text-red-500 font-medium">
+                  {errors.organizationName.message}
+                </p>
+              )}
+            </div>
+
+            <div>
               <label htmlFor="password" className="form-input-label">
                 Password
               </label>
@@ -161,7 +201,7 @@ function RegisterForm() {
           <div>
             <button
               type="submit"
-              disabled={isLoading || !token}
+              disabled={isLoading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
             >
               {isLoading ? (

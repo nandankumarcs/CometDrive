@@ -77,11 +77,10 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    // Validate organization
-    const organization = await this.organizationModel.findByPk(dto.organizationId);
-    if (!organization) {
-      throw new NotFoundException('Organization not found');
-    }
+    // Create organization
+    const organization = await this.organizationModel.create({
+      name: dto.organizationName,
+    });
 
     // Resolve user type
     const userTypeId = await this.resolveUserType(dto.userTypeId);
@@ -94,7 +93,7 @@ export class AuthService {
       email: dto.email.toLowerCase(),
       phone: dto.phone || null,
       password: hashedPassword,
-      organization_id: dto.organizationId,
+      organization_id: organization.id,
       user_type_id: userTypeId,
     });
 

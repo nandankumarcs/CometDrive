@@ -42,10 +42,10 @@ export class RegisterDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: 1, description: 'Organization ID' })
-  @IsNumber()
-  @IsNotEmpty({ message: 'Organization ID is required' })
-  organizationId: number;
+  @ApiProperty({ example: 'Acme Corp', description: 'Name of the organization to create' })
+  @IsString()
+  @IsNotEmpty({ message: 'Organization name is required' })
+  organizationName: string;
 
   @ApiPropertyOptional({ example: 1, description: 'User type ID (defaults to standard user)' })
   @IsNumber()

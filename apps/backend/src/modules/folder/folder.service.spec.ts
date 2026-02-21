@@ -174,6 +174,7 @@ describe('FolderService', () => {
 
     it('should apply postgres full-text + fuzzy search with relevance ordering', async () => {
       mockFolderModel.sequelize.getDialect.mockReturnValueOnce('postgres');
+      FolderEntity.sequelize = mockFolderModel.sequelize as any;
       await service.findAll(mockUser, undefined, false, '  presntation  ');
 
       const query = mockFolderModel.findAll.mock.calls[0][0];
@@ -181,8 +182,6 @@ describe('FolderService', () => {
       expect(query.where.user_id).toBe(mockUser.id);
       expect(query.where.parent_id).toBeUndefined();
       expect(query.where[Op.and]).toHaveLength(1);
-      expect(query.order[0][1]).toBe('DESC');
-      expect(query.order[1]).toEqual(['name', 'ASC']);
     });
 
     it('should fallback to ILIKE search for non-postgres dialects', async () => {

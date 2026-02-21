@@ -1,6 +1,16 @@
 'use client';
 
-import { ChevronRight, LayoutGrid, List, FolderPlus, Upload, Trash2, X, Info } from 'lucide-react';
+import {
+  ChevronRight,
+  LayoutGrid,
+  List,
+  FolderPlus,
+  Upload,
+  Trash2,
+  X,
+  Info,
+  MessageSquare,
+} from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
 import { useEffect, useState } from 'react';
 import { useTrashFile, useDownloadZip } from '../../hooks/use-files';
@@ -92,7 +102,7 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
         <nav className="flex items-center text-sm min-w-0 flex-1 mr-4">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center min-w-0">
-              {i > 0 && <ChevronRight className="h-4 w-4 text-gray-400 mx-1 flex-shrink-0" />}
+              {i > 0 && <ChevronRight className="h-4 w-4 text-gray-400 mx-1 shrink-0" />}
               <button
                 onClick={() => navigateToBreadcrumb(i)}
                 className={`truncate max-w-[160px] transition-colors ${
@@ -211,7 +221,7 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => openModal('newFolder')}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
@@ -273,6 +283,20 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
           >
             <Info className="h-5 w-5" />
           </button>
+
+          {store.currentFolderUuid && (
+            <button
+              onClick={store.toggleComments}
+              className={`p-1.5 rounded-lg transition-colors ${
+                store.showComments
+                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              title="View Comments"
+            >
+              <MessageSquare className="h-5 w-5" />
+            </button>
+          )}
 
           {/* View toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">

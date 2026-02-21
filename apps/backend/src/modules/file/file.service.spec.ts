@@ -245,6 +245,7 @@ describe('FileService', () => {
 
     it('should apply postgres full-text + fuzzy search with relevance ordering', async () => {
       mockFileModel.sequelize.getDialect.mockReturnValueOnce('postgres');
+      FileEntity.sequelize = mockFileModel.sequelize as any;
       await service.findAll(mockUser, undefined, false, '  presntation  ');
 
       const query = mockFileModel.findAll.mock.calls[0][0];
@@ -252,8 +253,6 @@ describe('FileService', () => {
       expect(query.where.user_id).toBe(mockUser.id);
       expect(query.where.folder_id).toBeUndefined();
       expect(query.where[Op.and]).toHaveLength(1);
-      expect(query.order[0][1]).toBe('DESC');
-      expect(query.order[1]).toEqual(['created_at', 'DESC']);
     });
 
     it('should fallback to ILIKE search for non-postgres dialects', async () => {

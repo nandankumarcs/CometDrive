@@ -28,7 +28,7 @@ import { ApprovalModule } from './modules/approval/approval.module';
 
 // Modules
 import { LoggerModule } from 'nestjs-pino';
-import { AuthModule, JwtAuthGuard } from './modules/auth';
+import { AuthModule } from './modules/auth';
 
 /**
  * Application Root Module

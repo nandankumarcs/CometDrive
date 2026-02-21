@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AuthService } from './auth.service';
 import {
   LoginDto,
+  RegisterDto,
   RefreshTokenDto,
   ForgotPasswordDto,
   ResetPasswordDto,
@@ -29,19 +30,19 @@ import { SuccessResponse } from '@src/commons/dtos';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // @Public()
-  // @Post('register')
-  // @ApiOperation({ summary: 'Register a new user (Public)' })
-  // @ApiResponse({ status: 201, description: 'User registered successfully' })
-  // @ApiResponse({ status: 409, description: 'Email already registered' })
-  // async register(
-  //   @Body() dto: RegisterDto,
-  //   @Ip() ipAddress: string,
-  //   @Headers('user-agent') userAgent: string,
-  // ) {
-  //   const result = await this.authService.register(dto, ipAddress, userAgent);
-  //   return new SuccessResponse('Registration successful', result);
-  // }
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user (Public)' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
+  async register(
+    @Body() dto: RegisterDto,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    const result = await this.authService.register(dto, ipAddress, userAgent);
+    return new SuccessResponse('Registration successful', result);
+  }
 
   @Public()
   @Post('register-with-token')

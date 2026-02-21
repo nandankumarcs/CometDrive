@@ -8,6 +8,7 @@ import { UserEntity } from '../../entities/user.entity';
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PasswordService } from '../auth/services';
 import { StorageService } from '../storage/storage.service';
+import { NotificationService } from '../notification/notification.service';
 
 const mockShareModel = {
   create: jest.fn(),
@@ -35,6 +36,10 @@ const mockPasswordService = {
 
 const mockStorageService = {
   download: jest.fn(),
+};
+
+const mockNotificationService = {
+  create: jest.fn(),
 };
 
 describe('ShareService', () => {
@@ -67,6 +72,10 @@ describe('ShareService', () => {
         {
           provide: StorageService,
           useValue: mockStorageService,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
         },
       ],
     }).compile();

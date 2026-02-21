@@ -12,6 +12,7 @@ export * from './invitation.entity';
 export * from './file-playback-progress.entity';
 export * from './file-video-comment.entity';
 export * from './notification.entity';
+export * from './comment.entity';
 
 import { OrganizationEntity } from './organization.entity';
 import { UserTypeEntity } from './user-type.entity';
@@ -26,6 +27,7 @@ import { Share } from './share.entity';
 import { FilePlaybackProgressEntity } from './file-playback-progress.entity';
 import { FileVideoCommentEntity } from './file-video-comment.entity';
 import { NotificationEntity } from './notification.entity';
+import { CommentEntity } from './comment.entity';
 
 export const entities = [
   UserTypeEntity,
@@ -41,4 +43,5 @@ export const entities = [
   FilePlaybackProgressEntity,
   FileVideoCommentEntity,
   NotificationEntity,
+  CommentEntity,
 ];

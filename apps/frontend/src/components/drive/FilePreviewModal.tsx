@@ -7,7 +7,7 @@ import { useFiles, useDownloadFile } from '../../hooks/use-files';
 import { usePlaybackProgress, useUpdatePlaybackProgress } from '../../hooks/use-video-progress';
 import api from '../../lib/api';
 import { VideoPlayer } from './VideoPlayer';
-import { VideoCommentsPanel } from './VideoCommentsPanel';
+import { CommentsPanel } from '../collaboration/CommentsPanel';
 import { ImageViewer } from './ImageViewer';
 
 export function FilePreviewModal() {
@@ -201,10 +201,11 @@ export function FilePreviewModal() {
             />
           </div>
           <div className="w-full lg:w-96 h-[45vh] lg:h-full">
-            <VideoCommentsPanel
-              fileUuid={previewItem.uuid}
-              currentTimeSeconds={currentVideoTime}
-              onSeekToTimestamp={handleSeekToComment}
+            <CommentsPanel
+              resourceType="file"
+              resourceUuid={previewItem.uuid}
+              currentTime={currentVideoTime}
+              onSeek={handleSeekToComment}
             />
           </div>
         </div>

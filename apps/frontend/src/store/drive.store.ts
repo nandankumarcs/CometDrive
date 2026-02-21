@@ -43,6 +43,7 @@ interface DriveState {
   previewItem: { uuid: string; name: string; mimeType: string } | null;
   isSidebarOpen: boolean;
   showDetails: boolean;
+  showComments: boolean;
 
   // Uploads
   uploads: Record<string, UploadItem>;
@@ -66,6 +67,7 @@ interface DriveState {
   openPreview: (item: { uuid: string; name: string; mimeType: string }) => void;
   closePreview: () => void;
   toggleDetails: () => void;
+  toggleComments: () => void;
 
   // Upload Actions
   addUpload: (id: string, name: string) => void;
@@ -93,6 +95,7 @@ export const useDriveStore = create<DriveState>()(
       previewItem: null,
       isSidebarOpen: true,
       showDetails: false,
+      showComments: false,
       uploads: {},
 
       setCurrentFolder: (uuid) =>
@@ -137,7 +140,10 @@ export const useDriveStore = create<DriveState>()(
       closeModal: () => set({ activeModal: null, contextItem: null }),
       openPreview: (item) => set({ previewItem: item }),
       closePreview: () => set({ previewItem: null }),
-      toggleDetails: () => set((state) => ({ showDetails: !state.showDetails })),
+      toggleDetails: () =>
+        set((state) => ({ showDetails: !state.showDetails, showComments: false })),
+      toggleComments: () =>
+        set((state) => ({ showComments: !state.showComments, showDetails: false })),
 
       addUpload: (id, name) =>
         set((state) => ({

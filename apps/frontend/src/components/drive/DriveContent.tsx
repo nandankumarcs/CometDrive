@@ -15,6 +15,7 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ShareModal } from './ShareModal';
 import { UploadDropzone, triggerUpload } from './UploadDropzone';
 import { DetailsPanel } from './DetailsPanel';
+import { CommentsPanel } from '../collaboration/CommentsPanel';
 import { ContinueWatchingCard } from './ContinueWatchingCard';
 
 interface DriveContentProps {
@@ -22,7 +23,7 @@ interface DriveContentProps {
 }
 
 export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps) {
-  const { currentFolderUuid, viewMode, selectedItems, resetBreadcrumbs, openModal } =
+  const { currentFolderUuid, viewMode, selectedItems, resetBreadcrumbs, openModal, showComments } =
     useDriveStore();
   const pathname = usePathname();
 
@@ -206,6 +207,11 @@ export function DriveContent({ skipBreadcrumbReset = false }: DriveContentProps)
         </div>
 
         <DetailsPanel />
+        {showComments && currentFolderUuid && (
+          <div className="w-80 h-full border-l border-gray-100 dark:border-gray-800 hidden md:block shrink-0 bg-white dark:bg-gray-900">
+            <CommentsPanel resourceType="folder" resourceUuid={currentFolderUuid} />
+          </div>
+        )}
       </div>
 
       {/* Modals */}
