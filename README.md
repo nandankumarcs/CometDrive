@@ -1,457 +1,261 @@
-# Full-Stack Boilerplate - NestJS + Next.js
+# CometDrive
 
 <p align="center">
-  <a href="https://nestjs.com/" target="_blank"><img src="https://nestjs.com/img/logo-small.svg" width="60" alt="NestJS" /></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://nextjs.org/" target="_blank"><img src="https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_dark_background.png" width="60" alt="Next.js" /></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://nx.dev" target="_blank"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="60" alt="Nx" /></a>
+  <strong>Collaboration-ready file management monorepo built with NestJS, Next.js, and Nx.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
-  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node Version" />
-  <img src="https://img.shields.io/badge/npm-%3E%3D9.0.0-red.svg" alt="NPM Version" />
-  <img src="https://img.shields.io/badge/typescript-5.9-blue.svg" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/nestjs-11.0-red.svg" alt="NestJS" />
-  <img src="https://img.shields.io/badge/next.js-16.0-black.svg" alt="Next.js" />
+  CometDrive starts as a production-minded full-stack boilerplate and already ships with secure authentication, organization-aware access control, file storage, sharing flows, notifications, and a polished drive experience.
 </p>
 
 <p align="center">
-  <strong>A production-ready monorepo boilerplate with NestJS backend, Next.js frontend, and reusable packages.</strong>
+  <img src="https://img.shields.io/badge/license-MIT-2563eb" alt="MIT License" />
+  <img src="https://img.shields.io/badge/node-%3E%3D20-0f766e" alt="Node 20+" />
+  <img src="https://img.shields.io/badge/Nx-22-143055?logo=nx&logoColor=white" alt="Nx" />
+  <img src="https://img.shields.io/badge/NestJS-11-e11d48?logo=nestjs&logoColor=white" alt="NestJS 11" />
+  <img src="https://img.shields.io/badge/Next.js-16-111827?logo=nextdotjs&logoColor=white" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Sequelize-1d4ed8?logo=postgresql&logoColor=white" alt="PostgreSQL with Sequelize" />
+  <img src="https://img.shields.io/badge/Redis-enabled-dc2626?logo=redis&logoColor=white" alt="Redis enabled" />
 </p>
 
 <p align="center">
-  Built with ❤️ by <a href="https://crownstack.com" target="_blank">CrownStack</a>
+  <img src="./header_screenshot.png" alt="CometDrive application header and workspace shell" width="88%" />
 </p>
 
-## ✨ Features
+<p align="center">
+  <img src="./drive-activity-on.png" alt="CometDrive activity panel" width="44%" />
+  <img src="./drive-after-toggle.png" alt="CometDrive drive workspace" width="44%" />
+</p>
 
-### Backend (NestJS)
+## Overview
 
-- 🔐 **JWT Authentication** with access/refresh tokens
-- 👥 **Role-Based Access Control** (RBAC)
-- 🏢 **Multi-Tenant Architecture** (organization-based)
-- 📧 **Email Service** with dev preview mode
-- 📱 **SMS Service** (Twilio) with dev preview mode
-- 🗄️ **PostgreSQL** with Sequelize ORM
-- 📚 **Swagger/OpenAPI** documentation
-- ✅ **Validation** with class-validator
-- 🔄 **Soft Delete** support
-- 🗃️ **Database Migrations** with Sequelize
+CometDrive is an Nx monorepo that pairs a NestJS API with a Next.js App Router frontend and shared workspace packages. It is structured like a reusable boilerplate, but `main` already includes enough product surface to act as a real collaboration and file-management foundation for internal tools, SaaS products, or client portals.
 
-### Frontend (Next.js)
+It comes with a secure backend, a responsive drive UI, reusable mail and SMS packages, database migrations, end-to-end testing hooks, and deployment scaffolding for both local and hosted environments.
 
-- ⚡ **Next.js 16** with App Router
-- 🎨 **Tailwind CSS** for styling
-- 📦 **SCSS** support
-- 🔄 **TanStack Query** for server state
-- 🗃️ **Zustand** for client state
-- ✅ **Zod** for schema validation
-- 🧪 **Jest** testing
-- 📱 **Responsive** design ready
+## What Ships On `main`
 
-### Packages (Reusable)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Identity and access</strong><br />
+      Open registration, JWT access and refresh tokens, database-backed sessions, password reset flows, RBAC, and organization-aware guards.
+    </td>
+    <td width="50%" valign="top">
+      <strong>Drive experience</strong><br />
+      Nested folders, uploads, inline previews, starred items, trash and restore flows, ZIP downloads, signed URLs, and storage usage indicators.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Collaboration</strong><br />
+      Share links, private recipient shares, password-protected public downloads, expiry controls, comments, video timestamp comments, continue-watching, and notifications.
+    </td>
+    <td width="50%" valign="top">
+      <strong>Production workflow</strong><br />
+      Swagger docs, PostgreSQL migrations, Redis support, local or S3-backed file storage, Jest and Playwright coverage, Docker Compose, and Render deployment config.
+    </td>
+  </tr>
+</table>
 
-- 📧 `@crownstack/mailer` - Email sending with Nodemailer
-- 📱 `@crownstack/sms` - SMS sending with Twilio
+## Core Capabilities
 
-### Developer Experience
+### Backend
 
-- 🎨 **Prettier** for code formatting
-- 📝 **EditorConfig** for consistent coding styles
-- 🔍 **ESLint** for code quality
-- 🧪 **Jest** for testing
-- 🎭 **Playwright** for E2E testing
+- JWT auth with refresh tokens and revocable sessions
+- Role-based access control and multi-tenant organization isolation
+- Swagger/OpenAPI docs and request validation with `class-validator`
+- PostgreSQL persistence with Sequelize, migrations, and seeders
+- Redis-backed infrastructure hooks
+- Local storage strategy with optional S3 strategy
+- Email flows through [`packages/mailer`](./packages/mailer/README.md)
+- SMS flows through [`packages/sms`](./packages/sms/README.md)
 
----
+### Frontend
 
-## 📁 Project Structure
+- Next.js 16 App Router with React 19
+- Tailwind CSS, SCSS, TanStack Query, Zustand, and Zod
+- Authenticated drive shell with storage meter and notifications
+- Shared-with-me, Starred, Trash, Settings, and public share routes
+- File preview experiences for common document and media flows
+- Collaboration UI for comments and video review
 
-```
+### File and Collaboration Flows
+
+- Upload files into folders and browse nested structures
+- Search, sort, star, move, trash, restore, and permanently delete files
+- Download individual files or bulk ZIP archives
+- Resume video playback with continue-watching state
+- Leave timestamped comments on video assets
+- Create public or recipient-specific shares with optional:
+  - expiry dates
+  - viewer or editor permissions
+  - password protection
+  - download enablement controls
+- Invite users into the workspace and surface in-app notifications
+
+## Architecture At A Glance
+
+| Layer     | Stack                                                            | Notes                                                                             |
+| --------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Frontend  | Next.js 16, React 19, Tailwind CSS, TanStack Query, Zustand, Zod | App Router client with authenticated and public share flows                       |
+| Backend   | NestJS 11, Swagger, Sequelize, PostgreSQL, Redis                 | Modular API with auth, storage, sharing, invitations, comments, and notifications |
+| Storage   | Local filesystem or Amazon S3                                    | Strategy-based storage service with signed URL support                            |
+| Workspace | Nx monorepo, npm workspaces, TypeScript 5.9                      | Shared tooling and app/package orchestration                                      |
+| Quality   | Jest, Playwright, ESLint, Prettier                               | Unit and end-to-end testing support across apps                                   |
+
+## Workspace Map
+
+```text
+.
 ├── apps/
-│   ├── backend/              # NestJS API server
-│   ├── backend-e2e/          # Backend E2E tests
-│   ├── frontend/             # Next.js web app
-│   └── frontend-e2e/         # Frontend E2E tests (Playwright)
-│
+│   ├── backend/         # NestJS API, auth, storage, shares, comments, notifications
+│   ├── backend-e2e/     # API end-to-end tests
+│   ├── frontend/        # Next.js App Router client
+│   └── frontend-e2e/    # Playwright coverage for user flows
 ├── packages/
-│   ├── mailer/               # @crownstack/mailer
-│   └── sms/                  # @crownstack/sms
-│
-├── nx.json                   # Nx configuration
-├── package.json              # Root dependencies
-├── tsconfig.base.json        # Base TypeScript config
-├── .prettierrc               # Prettier configuration
-├── .editorconfig             # EditorConfig settings
-└── .vscode/                  # VS Code settings
+│   ├── mailer/          # Shared Nodemailer package
+│   └── sms/             # Shared Twilio package
+├── docs/                # Project notes and supporting documentation
+├── docker-compose.yml   # Local Postgres and Redis services
+├── render.yaml          # Render deployment blueprint
+└── nx.json              # Workspace orchestration and target config
 ```
 
----
+For app-specific details, see [`apps/backend/README.md`](./apps/backend/README.md) and [`apps/frontend/README.md`](./apps/frontend/README.md).
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 18+
-- **PostgreSQL** 14+
-- **npm** or **yarn**
+- Node.js 20+
+- npm 9+
+- PostgreSQL 14+
+- Redis 6+ (recommended for parity with the backend config)
 
-### Installation
+### 1. Install dependencies
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd boilerplate-nest-next
-
-# Install dependencies
 npm install
+```
 
-# Setup backend environment
+### 2. Configure the backend
+
+```bash
 cp apps/backend/.env.example apps/backend/.env
-# Edit apps/backend/.env with your configuration
-
-# Setup frontend environment (if needed)
-# Create apps/frontend/.env.local with your variables
-
-# Create database
-createdb boilerplate_db
-
-# Run migrations
-cd apps/backend
-npm run migration:run
-npm run seed:run
 ```
 
-### Running the Applications
+Update `apps/backend/.env` with your database credentials, JWT secret, mail settings, and any optional storage or feature-flag values you want enabled.
 
-```bash
-# Start backend (development)
-npx nx serve backend
+### 3. Configure the frontend
 
-# Start frontend (development)
-npx nx dev frontend
-
-# Start both
-npx nx run-many --target=serve --projects=backend,frontend
-```
-
-### Access Points
-
-| Service      | URL                            |
-| ------------ | ------------------------------ |
-| Backend API  | http://localhost:3001/api      |
-| Swagger Docs | http://localhost:3001/api/docs |
-| Frontend     | http://localhost:3000          |
-
----
-
-## 📦 Packages
-
-### @crownstack/mailer
-
-Lightweight email service with Nodemailer.
-
-```typescript
-import { MailerService } from '@crownstack/mailer';
-
-await mailerService.sendMail({
-  to: 'user@example.com',
-  subject: 'Hello',
-  html: '<h1>Welcome!</h1>',
-});
-```
-
-[📖 Full Documentation](./packages/mailer/README.md)
-
-### @crownstack/sms
-
-SMS service with Twilio integration.
-
-```typescript
-import { SmsService } from '@crownstack/sms';
-
-await smsService.sendSms({
-  to: '+1234567890',
-  body: 'Your code is: 123456',
-});
-```
-
-[📖 Full Documentation](./packages/sms/README.md)
-
----
-
-## 🔧 Available Commands
-
-### Development
-
-```bash
-# Serve applications
-npx nx serve backend           # Start backend
-npx nx dev frontend            # Start frontend
-
-# Build applications
-npx nx build backend           # Build backend
-npx nx build frontend          # Build frontend
-
-# Run all builds
-npx nx run-many --target=build --all
-```
-
-### Database Migrations (Backend)
-
-```bash
-cd apps/backend
-
-# Run pending migrations
-npm run migration:run
-
-# Rollback last migration
-npm run migration:rollback
-
-# Check migration status
-npm run migration:status
-
-# Run seeders
-npm run seed:run
-
-# Fresh migration (⚠️ drops all tables)
-npm run migration:fresh
-```
-
-### Code Formatting
-
-```bash
-# Format all files
-npm run format
-
-# Check formatting (CI/CD)
-npm run format:check
-
-# Fix formatting issues
-npm run format:fix
-```
-
-### Testing
-
-```bash
-# Unit tests
-npx nx test backend
-npx nx test frontend
-
-# E2E tests
-npx nx e2e backend-e2e
-npx nx e2e frontend-e2e
-```
-
-### Code Quality
-
-```bash
-# Lint
-npx nx lint backend
-npx nx lint frontend
-
-# Type checking
-npx nx typecheck backend
-npx nx typecheck frontend
-```
-
-### Utilities
-
-```bash
-# View project graph
-npx nx graph
-
-# List all projects
-npx nx show projects
-
-# See affected projects
-npx nx affected:graph
-```
-
----
-
-## 🔐 Authentication Flow
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │     │  Backend │     │    DB    │
-└────┬─────┘     └────┬─────┘     └────┬─────┘
-     │                │                │
-     │  POST /login   │                │
-     │───────────────>│                │
-     │                │  Store Session │
-     │                │───────────────>│
-     │  Access Token  │                │
-     │  Refresh Token │                │
-     │<───────────────│                │
-     │                │                │
-     │  API Request   │                │
-     │  (Bearer Token)│                │
-     │───────────────>│                │
-     │                │  Validate      │
-     │                │───────────────>│
-     │     200 OK     │                │
-     │<───────────────│                │
-```
-
----
-
-## 👥 User Roles
-
-| Role        | Code          | Access                              |
-| ----------- | ------------- | ----------------------------------- |
-| Super Admin | `SUPER_ADMIN` | All organizations, all resources    |
-| Admin       | `ADMIN`       | Own organization, all resources     |
-| User        | `USER`        | Own organization, limited resources |
-
----
-
-## 🏢 Multi-Tenant Architecture
-
-- Each user belongs to an **Organization**
-- Data is isolated by `organization_id`
-- Guards prevent cross-organization access
-- Super Admins can access all organizations
-
----
-
-## 📧 Email & SMS Dev Preview
-
-In development mode, emails and SMS are not sent. Instead:
-
-- **Email**: Opens in browser via Ethereal Email
-- **SMS**: Shows HTML preview in browser
-
-Set in `.env`:
+Create `apps/frontend/.env.local`:
 
 ```env
-MAIL_PREVIEW=true
-TWILIO_PREVIEW_MODE=true
-```
-
----
-
-## 📚 Documentation
-
-| Topic          | Location                                                                             |
-| -------------- | ------------------------------------------------------------------------------------ |
-| Backend        | [apps/backend/README.md](./apps/backend/README.md)                                   |
-| Frontend       | [apps/frontend/README.md](./apps/frontend/README.md)                                 |
-| Auth Module    | [apps/backend/src/modules/auth/README.md](./apps/backend/src/modules/auth/README.md) |
-| Base CRUD      | [apps/backend/src/commons/base/README.md](./apps/backend/src/commons/base/README.md) |
-| Database       | [apps/backend/src/database/README.md](./apps/backend/src/database/README.md)         |
-| Mailer Package | [packages/mailer/README.md](./packages/mailer/README.md)                             |
-| SMS Package    | [packages/sms/README.md](./packages/sms/README.md)                                   |
-
----
-
-## 🛠️ Tech Stack
-
-### Backend
-
-- [NestJS](https://nestjs.com/) - Node.js framework
-- [Sequelize](https://sequelize.org/) - ORM
-- [PostgreSQL](https://www.postgresql.org/) - Database
-- [Swagger](https://swagger.io/) - API documentation
-- [Nodemailer](https://nodemailer.com/) - Email sending
-- [Twilio](https://www.twilio.com/) - SMS sending
-
-### Frontend
-
-- [Next.js](https://nextjs.org/) - React framework
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
-- [TanStack Query](https://tanstack.com/query) - Server state management
-- [Zustand](https://zustand-demo.pmnd.rs/) - Client state management
-- [Zod](https://zod.dev/) - Schema validation
-- [SCSS](https://sass-lang.com/) - CSS preprocessor
-
-### Tooling
-
-- [Nx](https://nx.dev/) - Monorepo management
-- [Prettier](https://prettier.io/) - Code formatter
-- [EditorConfig](https://editorconfig.org/) - Consistent coding styles
-- [Jest](https://jestjs.io/) - Testing
-- [Playwright](https://playwright.dev/) - E2E testing
-- [ESLint](https://eslint.org/) - Linting
-
----
-
-## 📝 Environment Variables
-
-### Backend
-
-```env
-# Application
-ENV=dev
-APP_PORT=3001
-FRONTEND_DOMAIN=http://localhost:3000
-
-# Database
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_NAME=boilerplate_db
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=your_password
-
-# JWT
-JWT_SECRET=your_super_secret_key
-
-# Email
-MAIL_PREVIEW=true
-
-# SMS
-TWILIO_PREVIEW_MODE=true
-```
-
-### Frontend
-
-```env
-# API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
----
+### 4. Create the database and run migrations
 
-## 🎨 Code Style
-
-This project uses:
-
-- **Prettier** for automatic code formatting
-- **EditorConfig** for consistent editor settings
-- **ESLint** for code quality
-
-Format your code before committing:
+The backend `.env.example` defaults to `boilerplate_db`. Either create that database or change the env value first.
 
 ```bash
-npm run format
+createdb boilerplate_db
+cd apps/backend
+npm run migration:run
+npm run seed:run
 ```
 
-VS Code users: Format on save is enabled automatically.
+### 5. Start the apps
 
----
+From the workspace root:
 
-## 🤝 Contributing
+```bash
+npx nx serve backend
+npx nx dev frontend
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests, linting, and formatting
-5. Submit a pull request
+### 6. Open the project
 
----
+| Surface      | URL                                |
+| ------------ | ---------------------------------- |
+| Frontend     | `http://localhost:3000`            |
+| Backend API  | `http://localhost:3001/api`        |
+| Swagger Docs | `http://localhost:3001/api/docs`   |
+| Health Check | `http://localhost:3001/api/health` |
 
-## 📄 License
+## Useful Commands
+
+| Task             | Command                   |
+| ---------------- | ------------------------- |
+| Start backend    | `npx nx serve backend`    |
+| Start frontend   | `npx nx dev frontend`     |
+| Build backend    | `npx nx build backend`    |
+| Build frontend   | `npx nx build frontend`   |
+| Test backend     | `npx nx test backend`     |
+| Test frontend    | `npx nx test frontend`    |
+| Run backend e2e  | `npx nx e2e backend-e2e`  |
+| Run frontend e2e | `npx nx e2e frontend-e2e` |
+| Lint backend     | `npx nx lint backend`     |
+| Lint frontend    | `npx nx lint frontend`    |
+| Format workspace | `npm run format`          |
+
+### Backend migration shortcuts
+
+```bash
+cd apps/backend
+
+npm run migration:run
+npm run migration:rollback
+npm run migration:status
+npm run migration:fresh
+npm run seed:run
+```
+
+## Configuration Notes
+
+### Storage
+
+The backend is wired for strategy-based storage:
+
+- `local` storage works out of the box for development
+- `s3` storage is available via `FILE_DRIVER=s3`
+- S3 mode uses `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_S3_BUCKET`, and `AWS_S3_REGION`
+
+### Mail and SMS
+
+- `MAIL_PREVIEW=true` opens emails in a browser during development instead of sending them
+- `TWILIO_PREVIEW_MODE=true` allows SMS flows to be exercised without live delivery
+
+### Feature flags
+
+`apps/backend/.env.example` exposes flags you can roll out gradually:
+
+- `FEATURE_NOTIFICATIONS`
+- `FEATURE_RESOURCE_COMMENTS`
+- `FEATURE_APPROVALS`
+- `FEATURE_FILE_VERSIONS`
+- `FEATURE_2FA`
+
+## Deployment
+
+### Local infrastructure
+
+[`docker-compose.yml`](./docker-compose.yml) provides PostgreSQL and Redis services for local development and production-like backend wiring.
+
+### Render
+
+[`render.yaml`](./render.yaml) includes a two-service blueprint for deploying the backend and frontend separately on Render.
+
+## Why This Repo Works Well As A Starter
+
+- It is opinionated enough to demonstrate real product flows, not just framework wiring
+- It keeps backend, frontend, and shared packages inside one maintainable Nx workspace
+- It leaves clear extension points for approvals, comments, notifications, 2FA, and storage backends
+- It ships with documentation, testing hooks, and deployment scaffolding from day one
+
+## License
 
 MIT
 
----
-
-## 🔗 Useful Links
-
-- [Nx Documentation](https://nx.dev/)
-- [NestJS Documentation](https://docs.nestjs.com/)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Sequelize Documentation](https://sequelize.org/docs/v6/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [TanStack Query Documentation](https://tanstack.com/query/latest)
+Built by [CrownStack](https://crownstack.com).
