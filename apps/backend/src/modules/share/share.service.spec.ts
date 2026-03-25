@@ -243,7 +243,7 @@ describe('ShareService', () => {
   describe('revoke', () => {
     it('should revoke all active shares for a file', async () => {
       const user = { id: 1 } as UserEntity;
-      const file = { id: 1, uuid: 'file-uuid' } as FileEntity;
+      const file = { id: 1, uuid: 'file-uuid', user_id: 1 } as FileEntity;
 
       mockFileModel.findOne.mockResolvedValue(file);
       mockShareModel.update.mockResolvedValue([1]); // Sequelize update returns [affectedCount]

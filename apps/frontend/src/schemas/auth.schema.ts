@@ -13,7 +13,6 @@ export const registerSchema = z
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Please enter a valid email address'),
-    organizationName: z.string().min(1, 'Workspace name is required'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
   })
@@ -24,6 +23,21 @@ export const registerSchema = z
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
+export const inviteRegisterSchema = z
+  .object({
+    email: z.string().email('Please enter a valid email address'),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type InviteRegisterFormData = z.infer<typeof inviteRegisterSchema>;
+
 // ─── API Response Types ─────────────────────────────────
 export interface AuthUser {
   id: number;
@@ -31,13 +45,8 @@ export interface AuthUser {
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
-  organization?: {
-    uuid: string;
-    name: string;
-    max_storage: string;
-    storage_used: string;
-  };
+  max_storage: string;
+  storage_used: string;
 }
 
 export interface LoginResponse {

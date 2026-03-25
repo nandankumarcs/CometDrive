@@ -400,7 +400,7 @@ export class ShareService {
   }
 
   private ensureSharePermission(ownerUserId: number, user: any) {
-    if (ownerUserId !== user.id && user.userTypeId > 2) {
+    if (ownerUserId !== user.id) {
       throw new NotFoundException('Resource not found or access denied');
     }
   }

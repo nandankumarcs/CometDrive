@@ -32,13 +32,7 @@ function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     clearError();
     try {
-      await registerUser(
-        data.firstName,
-        data.lastName,
-        data.email,
-        data.organizationName,
-        data.password,
-      );
+      await registerUser(data.firstName, data.lastName, data.email, data.password);
       router.push('/drive');
     } catch {
       // Error handled in store
@@ -60,7 +54,7 @@ function RegisterForm() {
             Create your account
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Complete your registration to get started with CometDrive
+            Create your personal CometDrive account
           </p>
         </div>
 
@@ -129,29 +123,6 @@ function RegisterForm() {
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-500 font-medium">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="organizationName" className="form-input-label">
-                Workspace Name
-              </label>
-              <input
-                id="organizationName"
-                type="text"
-                autoComplete="organization"
-                placeholder="Acme Corp"
-                className={`form-input-field ${
-                  errors.organizationName
-                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                    : ''
-                }`}
-                {...register('organizationName')}
-              />
-              {errors.organizationName && (
-                <p className="mt-1 text-xs text-red-500 font-medium">
-                  {errors.organizationName.message}
-                </p>
               )}
             </div>
 

@@ -1,10 +1,10 @@
 'use client';
 
-import { User, Moon, Sun, HardDrive, CreditCard, Shield } from 'lucide-react';
+import { User, Moon, Sun, HardDrive, CreditCard, MailPlus, Copy, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
-import { useFeatureFlags } from '../../../store/feature-flags.store';
+import { useCreateInvitation } from '../../../hooks/use-invitations';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -21,8 +21,11 @@ function formatBytes(bytes: number, decimals = 2) {
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const { theme, setTheme } = useTheme();
-  const { isEnabled } = useFeatureFlags();
   const [mounted, setMounted] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const createInvitation = useCreateInvitation();
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -31,9 +34,31 @@ export default function SettingsPage() {
 
   if (!mounted) return null;
 
-  const storageUsed = user?.organization ? parseInt(user.organization.storage_used) : 0;
-  const maxStorage = user?.organization ? parseInt(user.organization.max_storage) : 0;
+  const storageUsed = user ? parseInt(user.storage_used || '0') : 0;
+  const maxStorage = user ? parseInt(user.max_storage || '1073741824') : 0;
   const storagePercent = maxStorage > 0 ? (storageUsed / maxStorage) * 100 : 0;
+  const inviteError =
+    (createInvitation.error as { response?: { data?: { message?: string } } } | null)?.response
+      ?.data?.message ?? null;
+
+  const handleInviteSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const invitation = await createInvitation.mutateAsync();
+
+    setInviteLink(`${window.location.origin}/auth/signup?token=${invitation.token}`);
+    setCopySuccess(false);
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(inviteLink);
+    setCopySuccess(true);
+    window.setTimeout(() => setCopySuccess(false), 2000);
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -150,27 +175,80 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Security Section (Feature Flagged Placeholder) */}
-        <section
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700 overflow-hidden ${
-            isEnabled('twoFactorAuth') ? '' : 'opacity-50 cursor-not-allowed'
-          }`}
-        >
+        <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-red-500" />
-              Security {isEnabled('twoFactorAuth') ? '' : '(Coming Soon)'}
+              <MailPlus className="w-5 h-5 mr-2 text-emerald-500" />
+              Invite Teammates
             </h2>
           </div>
-          <div className="p-6">
-            {isEnabled('twoFactorAuth') ? (
+          <div className="p-6 space-y-5">
+            <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Two-factor authentication features are enabled for this environment.
+                Create a reusable invitation link for a new user to create an account.
               </p>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Two-factor authentication and password management features will be available soon.
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                The first successful signup uses the link, and unused links expire in 7 days.
               </p>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleInviteSubmit}>
+              <div className="flex justify-start">
+                <div>
+                  <button
+                    type="submit"
+                    data-testid="create-invite-button"
+                    disabled={createInvitation.isPending}
+                    className="w-full md:w-auto inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {createInvitation.isPending ? 'Creating...' : 'Create Invite Link'}
+                  </button>
+                </div>
+              </div>
+
+              {inviteError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400">
+                  {inviteError}
+                </div>
+              )}
+            </form>
+
+            {inviteLink && (
+              <div
+                data-testid="invite-link-panel"
+                className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                      Invitation created
+                    </p>
+                    <p
+                      data-testid="invite-link-text"
+                      className="mt-1 break-all text-sm text-emerald-800 dark:text-emerald-300"
+                    >
+                      {inviteLink}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyInviteLink}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-900/40"
+                  >
+                    {copySuccess ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy link
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </section>

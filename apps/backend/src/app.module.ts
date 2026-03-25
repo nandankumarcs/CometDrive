@@ -13,9 +13,6 @@ import { CommonsModule } from './commons/commons.module';
 import { RedisModule } from './redis';
 import { RateLimiterGuard } from '@src/commons/guards';
 import { UserEntity, SessionEntity, AuditLogEntity } from '@src/entities';
-import { UserModule } from './modules/user';
-import { OrganizationModule } from './modules/organization';
-import { UserTypeModule } from './modules/user-type';
 import { InvitationModule } from './modules/invitation/invitation.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { FolderModule } from './modules/folder/folder.module';
@@ -127,9 +124,6 @@ import { AuthModule } from './modules/auth';
 
     // Feature Modules
     AuthModule,
-    UserModule,
-    OrganizationModule,
-    UserTypeModule,
     InvitationModule,
     FolderModule,
     FileModule,

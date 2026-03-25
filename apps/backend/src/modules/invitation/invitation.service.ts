@@ -3,8 +3,6 @@ import { InjectModel } from '@nestjs/sequelize';
 import { InvitationEntity, UserEntity, UserTypeEntity } from '@src/entities';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
-import { MailerService } from '@crownstack/mailer';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class InvitationService {
@@ -13,27 +11,33 @@ export class InvitationService {
     private readonly invitationModel: typeof InvitationEntity,
     @InjectModel(UserTypeEntity)
     private readonly userTypeModel: typeof UserTypeEntity,
-    private readonly mailerService: MailerService,
-    private readonly configService: ConfigService,
   ) {}
 
   async create(createInvitationDto: CreateInvitationDto, inviter: UserEntity) {
-    const { email, user_type_id } = createInvitationDto;
+    const requestedEmail = createInvitationDto.email?.trim().toLowerCase();
 
-    // Check if user type exists
-    const userType = await this.userTypeModel.findByPk(user_type_id);
+    // All invite signups are standard users for now.
+    const userType = await this.userTypeModel.findOne({
+      where: { code: 'USER', is_active: true },
+    });
     if (!userType) {
-      throw new NotFoundException('User type not found');
+      throw new NotFoundException('Default user type not found');
     }
 
+    // Generate token
+    const token = crypto.randomBytes(32).toString('hex');
+    const email = requestedEmail ?? this.buildGenericInviteEmail(token);
+
     // Check for existing active invitation
-    const existingInvitation = await this.invitationModel.findOne({
-      where: {
-        email,
-        accepted_at: null,
-        is_revoked: false,
-      },
-    });
+    const existingInvitation = requestedEmail
+      ? await this.invitationModel.findOne({
+          where: {
+            email,
+            accepted_at: null,
+            is_revoked: false,
+          },
+        })
+      : null;
 
     if (existingInvitation) {
       if (existingInvitation.expires_at > new Date()) {
@@ -44,34 +48,15 @@ export class InvitationService {
       existingInvitation.is_revoked = true;
       await existingInvitation.save();
     }
-
-    // Generate token
-    const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
     const invitation = await this.invitationModel.create({
       email,
-      user_type_id,
+      user_type_id: userType.id,
       invited_by: inviter.id,
       token,
       expires_at: expiresAt,
-    });
-
-    // Send email
-    const frontendUrl = this.configService.get('FRONTEND_DOMAIN', 'http://localhost:3000');
-    const inviteLink = `${frontendUrl}/auth/signup?token=${token}`;
-
-    await this.mailerService.sendMail({
-      to: email,
-      subject: 'You have been invited to join Comet',
-      html: `
-        <h1>Welcome to Comet</h1>
-        <p>You have been invited by ${inviter.first_name} ${inviter.last_name} to join Comet as a ${userType.name}.</p>
-        <p>Click the link below to accept the invitation and create your account:</p>
-        <a href="${inviteLink}">${inviteLink}</a>
-        <p>This link expires in 7 days.</p>
-      `,
     });
 
     return invitation;
@@ -132,5 +117,9 @@ export class InvitationService {
       ],
       order: [['created_at', 'DESC']],
     });
+  }
+
+  private buildGenericInviteEmail(token: string): string {
+    return `invite+${token.slice(0, 16)}@comet.local`;
   }
 }

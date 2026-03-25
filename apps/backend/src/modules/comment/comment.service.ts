@@ -155,9 +155,8 @@ export class CommentService {
   async remove(user: any, uuid: string): Promise<void> {
     const comment = await this.findOne(uuid);
 
-    // Check if user is comment author or a super admin
-    if (comment.user_id !== user.id && user.userTypeId > 2) {
-      // Allow resource owner to delete comments
+    if (comment.user_id !== user.id) {
+      // Allow the resource owner to delete comments on their own files/folders.
       let ownerId: number | null = null;
       if (comment.file_id) {
         const file = await this.fileModel.findByPk(comment.file_id);

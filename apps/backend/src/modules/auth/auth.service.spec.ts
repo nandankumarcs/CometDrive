@@ -5,8 +5,8 @@ import { getModelToken } from '@nestjs/sequelize';
 import { PasswordService, TokenService, SessionService } from './services';
 import { EmailService } from '@src/commons/services';
 import { InvitationService } from '../invitation/invitation.service';
-import { UserEntity, UserTypeEntity, OrganizationEntity, PasswordResetEntity } from '@src/entities';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { UserEntity, UserTypeEntity, PasswordResetEntity } from '@src/entities';
+import { ConflictException } from '@nestjs/common';
 
 const mockConfigService = {
   getOrThrow: jest.fn((key) => {
@@ -50,11 +50,6 @@ const mockUserTypeModel = {
   findOne: jest.fn(),
 };
 
-const mockOrganizationModel = {
-  findByPk: jest.fn(),
-  create: jest.fn(),
-};
-
 const mockPasswordResetModel = {
   create: jest.fn(),
 };
@@ -74,7 +69,6 @@ describe('AuthService', () => {
         { provide: InvitationService, useValue: mockInvitationService },
         { provide: getModelToken(UserEntity), useValue: mockUserModel },
         { provide: getModelToken(UserTypeEntity), useValue: mockUserTypeModel },
-        { provide: getModelToken(OrganizationEntity), useValue: mockOrganizationModel },
         { provide: getModelToken(PasswordResetEntity), useValue: mockPasswordResetModel },
       ],
     }).compile();
@@ -96,10 +90,8 @@ describe('AuthService', () => {
       lastName: 'Smith',
       email: 'jane@example.com',
       password: 'password123',
-      organizationName: 'Acme Corp',
     };
 
-    const newOrganization = { id: 10, name: 'Acme Corp' };
     const defaultUserType = { id: 2, code: 'USER' };
 
     const newUser = {
@@ -107,13 +99,12 @@ describe('AuthService', () => {
       uuid: 'uuid-200',
       email: 'jane@example.com',
       first_name: 'Jane',
-      organization_id: 10,
+      organization_id: null,
       user_type_id: 2,
     };
 
     beforeEach(() => {
       mockUserModel.findOne.mockResolvedValue(null);
-      mockOrganizationModel.create.mockResolvedValue(newOrganization);
       mockUserTypeModel.findOne.mockResolvedValue(defaultUserType);
       mockUserModel.create.mockResolvedValue(newUser);
       mockSessionService.create.mockResolvedValue({ hash: 'session_hash' });
@@ -124,18 +115,23 @@ describe('AuthService', () => {
       mockUserModel.findByPk.mockResolvedValue(newUser);
     });
 
-    it('should register a new user and create an organization', async () => {
+    it('should register a new standalone user', async () => {
       const result = await service.register(dto as any);
 
       expect(mockUserModel.findOne).toHaveBeenCalledWith({
         where: { email: 'jane@example.com', deleted_at: null },
       });
-      expect(mockOrganizationModel.create).toHaveBeenCalledWith({ name: 'Acme Corp' });
       expect(mockUserTypeModel.findOne).toHaveBeenCalledWith({
         where: { code: 'USER', is_active: true },
       });
       expect(mockPasswordService.hash).toHaveBeenCalledWith('password123');
-      expect(mockUserModel.create).toHaveBeenCalled();
+      expect(mockUserModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'jane@example.com',
+          organization_id: null,
+          user_type_id: 2,
+        }),
+      );
       expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith('jane@example.com', {
         name: 'Jane',
       });
@@ -153,6 +149,7 @@ describe('AuthService', () => {
   describe('registerWithToken', () => {
     const dto = {
       token: 'valid_token',
+      email: 'john@example.com',
       firstName: 'John',
       lastName: 'Doe',
       password: 'password123',
@@ -164,28 +161,20 @@ describe('AuthService', () => {
       user_type_id: 2,
     };
 
-    const inviter = {
-      id: 1,
-      organization_id: 10,
-    };
-
     const newUser = {
       id: 100,
       uuid: 'uuid-100',
       email: 'john@example.com',
       first_name: 'John',
-      organization_id: 10,
+      organization_id: null,
       user_type: { code: 'USER' },
     };
 
     it('should register a user with valid token', async () => {
       mockInvitationService.validateToken.mockResolvedValue(invitation);
-      mockUserModel.findOne.mockResolvedValue(null); // No existing user
-      mockUserModel.findByPk.mockImplementation((id) => {
-        if (id === 1) return Promise.resolve(inviter);
-        if (id === 100) return Promise.resolve(newUser);
-        return Promise.resolve(null);
-      });
+      mockUserTypeModel.findOne.mockResolvedValue({ id: 2, code: 'USER' });
+      mockUserModel.findOne.mockResolvedValue(null);
+      mockUserModel.findByPk.mockResolvedValue(newUser);
       mockUserModel.create.mockResolvedValue(newUser);
 
       mockSessionService.create.mockResolvedValue({ hash: 'session_hash' });
@@ -197,7 +186,13 @@ describe('AuthService', () => {
       const result = await service.registerWithToken(dto);
 
       expect(mockInvitationService.validateToken).toHaveBeenCalledWith(dto.token);
-      expect(mockUserModel.create).toHaveBeenCalled();
+      expect(mockUserModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'john@example.com',
+          organization_id: null,
+          user_type_id: 2,
+        }),
+      );
       expect(mockInvitationService.accept).toHaveBeenCalledWith(dto.token);
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('user');
@@ -210,12 +205,32 @@ describe('AuthService', () => {
       await expect(service.registerWithToken(dto)).rejects.toThrow(ConflictException);
     });
 
-    it('should throw NotFoundException if inviter organization not found (inviter missing)', async () => {
-      mockInvitationService.validateToken.mockResolvedValue(invitation);
+    it('should allow a generic invite to register any email', async () => {
+      mockInvitationService.validateToken.mockResolvedValue({
+        email: 'invite+token@comet.local',
+        invited_by: 1,
+        user_type_id: 2,
+      });
+      mockUserTypeModel.findOne.mockResolvedValue({ id: 2, code: 'USER' });
       mockUserModel.findOne.mockResolvedValue(null);
-      mockUserModel.findByPk.mockResolvedValue(null); // Inviter not found
+      mockUserModel.findByPk.mockResolvedValue({ ...newUser, email: dto.email });
+      mockUserModel.create.mockResolvedValue({ ...newUser, email: dto.email });
+      mockSessionService.create.mockResolvedValue({ hash: 'session_hash' });
+      mockTokenService.generateTokens.mockReturnValue({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      });
 
-      await expect(service.registerWithToken(dto)).rejects.toThrow(NotFoundException);
+      const result = await service.registerWithToken(dto);
+
+      expect(mockUserModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'john@example.com',
+          organization_id: null,
+          user_type_id: 2,
+        }),
+      );
+      expect(result).toHaveProperty('accessToken');
     });
   });
 });

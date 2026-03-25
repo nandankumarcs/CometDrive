@@ -4,7 +4,6 @@ import {
   FileVideoCommentEntity,
   FolderEntity,
   UserEntity,
-  OrganizationEntity,
   Share,
   SharePermission,
 } from '@src/entities';
@@ -43,8 +42,8 @@ export class FileService {
     private readonly videoCommentModel: typeof FileVideoCommentEntity,
     @InjectModel(Share)
     private readonly shareModel: typeof Share,
-    @InjectModel(OrganizationEntity)
-    private readonly organizationModel: typeof OrganizationEntity,
+    @InjectModel(UserEntity)
+    private readonly userModel: typeof UserEntity,
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
   ) {}
@@ -84,25 +83,23 @@ export class FileService {
         file.originalname
       }`;
 
-      // Check storage quota
-      const orgId = (user as any).organizationId || user.organization_id;
-      const organization = await this.organizationModel.findByPk(orgId);
-      if (!organization) {
-        throw new NotFoundException('Organization not found');
+      // Check storage quota for the actual file owner.
+      const fileOwner = await this.userModel.findByPk(fileOwnerId);
+      if (!fileOwner) {
+        throw new NotFoundException('File owner not found');
       }
 
       const fileSize = parseInt(file.size, 10);
-      const currentUsage = parseInt(organization.storage_used as any, 10);
-      const maxStorage = parseInt(organization.max_storage as any, 10);
+      const currentUsage = parseInt(fileOwner.storage_used as any, 10);
+      const maxStorage = parseInt(fileOwner.max_storage as any, 10);
 
       if (currentUsage + fileSize > maxStorage) {
-        throw new ForbiddenException('Storage usage quota exceeded for this organization.');
+        throw new ForbiddenException('Storage usage quota exceeded for this user.');
       }
 
       await this.storageService.upload(file, storagePath);
 
-      // Update storage usage
-      await organization.increment('storage_used', { by: fileSize });
+      await fileOwner.increment('storage_used', { by: fileSize });
 
       const fileRecord = await this.fileModel.create({
         name: file.originalname,
@@ -411,11 +408,9 @@ export class FileService {
     await file.destroy({ force: true });
 
     // Update storage usage
-    const organization = await this.organizationModel.findByPk(user.organization_id);
-    if (organization) {
-      // Ensure we don't go below zero (though unlikely with proper logic)
-      // Sequelize decrement is useful here
-      await organization.decrement('storage_used', { by: file.size });
+    const fileOwner = await this.userModel.findByPk(file.user_id);
+    if (fileOwner) {
+      await fileOwner.decrement('storage_used', { by: file.size });
     }
 
     const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
@@ -460,9 +455,9 @@ export class FileService {
     }
 
     // Update storage usage
-    const organization = await this.organizationModel.findByPk(user.organization_id);
-    if (organization && totalSize > 0) {
-      await organization.decrement('storage_used', { by: totalSize });
+    const fileOwner = await this.userModel.findByPk(user.id);
+    if (fileOwner && totalSize > 0) {
+      await fileOwner.decrement('storage_used', { by: totalSize });
     }
 
     await this.auditService.log(

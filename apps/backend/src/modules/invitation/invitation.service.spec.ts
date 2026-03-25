@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InvitationService } from './invitation.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { InvitationEntity, UserEntity, UserTypeEntity } from '@src/entities';
-import { MailerService } from '@crownstack/mailer';
-import { ConfigService } from '@nestjs/config';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 const mockInvitationModel = {
@@ -13,18 +11,7 @@ const mockInvitationModel = {
 };
 
 const mockUserTypeModel = {
-  findByPk: jest.fn(),
-};
-
-const mockMailerService = {
-  sendMail: jest.fn(),
-};
-
-const mockConfigService = {
-  get: jest.fn((key) => {
-    if (key === 'FRONTEND_DOMAIN') return 'http://localhost:3000';
-    return null;
-  }),
+  findOne: jest.fn(),
 };
 
 describe('InvitationService', () => {
@@ -42,14 +29,6 @@ describe('InvitationService', () => {
           provide: getModelToken(UserTypeEntity),
           useValue: mockUserTypeModel,
         },
-        {
-          provide: MailerService,
-          useValue: mockMailerService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
       ],
     }).compile();
 
@@ -66,12 +45,13 @@ describe('InvitationService', () => {
 
   describe('create', () => {
     it('should create an invitation', async () => {
-      const dto = { email: 'test@example.com', user_type_id: 1 };
+      const dto = { email: 'test@example.com' };
       const inviter = { id: 1, first_name: 'Admin', last_name: 'User' } as UserEntity;
-      mockUserTypeModel.findByPk.mockResolvedValue({ id: 1, name: 'User' });
+      mockUserTypeModel.findOne.mockResolvedValue({ id: 1, name: 'User', code: 'USER' });
       mockInvitationModel.findOne.mockResolvedValue(null);
       mockInvitationModel.create.mockResolvedValue({
         ...dto,
+        user_type_id: 1,
         token: 'token123',
         uuid: 'uuid123',
         expires_at: new Date(Date.now() + 86400000),
@@ -80,14 +60,25 @@ describe('InvitationService', () => {
       const result = await service.create(dto, inviter);
 
       expect(mockInvitationModel.create).toHaveBeenCalled();
-      expect(mockMailerService.sendMail).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
-    it('should throw BadRequest if active invitation exists', async () => {
-      const dto = { email: 'test@example.com', user_type_id: 1 };
+    it('should create a generic invitation when email is omitted', async () => {
+      const dto = {};
       const inviter = { id: 1 } as UserEntity;
-      mockUserTypeModel.findByPk.mockResolvedValue({ id: 1 });
+      mockUserTypeModel.findOne.mockResolvedValue({ id: 1, name: 'User', code: 'USER' });
+      mockInvitationModel.create.mockImplementation(async (payload) => payload);
+
+      const result = await service.create(dto, inviter);
+
+      expect(mockInvitationModel.findOne).not.toHaveBeenCalled();
+      expect(result.email).toMatch(/^invite\+.+@comet\.local$/);
+    });
+
+    it('should throw BadRequest if active invitation exists', async () => {
+      const dto = { email: 'test@example.com' };
+      const inviter = { id: 1 } as UserEntity;
+      mockUserTypeModel.findOne.mockResolvedValue({ id: 1, code: 'USER' });
       mockInvitationModel.findOne.mockResolvedValue({
         expires_at: new Date(Date.now() + 86400000), // Future
         accepted_at: null,

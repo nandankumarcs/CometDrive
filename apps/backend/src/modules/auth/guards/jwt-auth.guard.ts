@@ -124,7 +124,6 @@ export class JwtAuthGuard implements CanActivate {
       email: user.email,
       firstName: user.first_name,
       lastName: user.last_name,
-      organizationId: user.organization_id,
       userTypeId: user.user_type_id,
       userTypeCode: user.user_type?.code || '',
       sessionHash,

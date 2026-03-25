@@ -75,6 +75,20 @@ export class UserEntity extends BaseEntity {
   declare profile_picture: string;
 
   @Column({
+    type: DataType.BIGINT,
+    allowNull: false,
+    defaultValue: 1073741824,
+  })
+  declare max_storage: number;
+
+  @Column({
+    type: DataType.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare storage_used: number;
+
+  @Column({
     type: DataType.DATE,
     allowNull: true,
   })
@@ -93,9 +107,9 @@ export class UserEntity extends BaseEntity {
   @ForeignKey(() => OrganizationEntity)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: true,
   })
-  declare organization_id: number;
+  declare organization_id: number | null;
 
   @BelongsTo(() => OrganizationEntity)
   declare organization: OrganizationEntity;

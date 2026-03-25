@@ -12,11 +12,12 @@ interface AuthState {
   error: string | null;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (
+  register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  registerWithToken: (
+    token: string,
+    email: string,
     firstName: string,
     lastName: string,
-    email: string,
-    organizationName: string,
     password: string,
   ) => Promise<void>;
   logout: () => void;
@@ -55,14 +56,13 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        register: async (firstName, lastName, email, organizationName, password) => {
+        register: async (firstName, lastName, email, password) => {
           set({ isLoading: true, error: null });
           try {
             const res = await api.post<RegisterResponse>('/auth/register', {
               firstName,
               lastName,
               email,
-              organizationName,
               password,
             });
             const { accessToken, refreshToken, user } = res.data.data;
@@ -75,6 +75,31 @@ export const useAuthStore = create<AuthState>()(
             });
           } catch (err: any) {
             const message = err.response?.data?.message || 'Registration failed';
+            set({ error: message, isLoading: false });
+            throw err;
+          }
+        },
+
+        registerWithToken: async (token, email, firstName, lastName, password) => {
+          set({ isLoading: true, error: null });
+          try {
+            const res = await api.post<RegisterResponse>('/auth/register-with-token', {
+              token,
+              email,
+              firstName,
+              lastName,
+              password,
+            });
+            const { accessToken, refreshToken, user } = res.data.data;
+            set({
+              user,
+              accessToken,
+              refreshToken,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } catch (err: any) {
+            const message = err.response?.data?.message || 'Invitation registration failed';
             set({ error: message, isLoading: false });
             throw err;
           }

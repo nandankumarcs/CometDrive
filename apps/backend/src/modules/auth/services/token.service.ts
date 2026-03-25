@@ -33,8 +33,6 @@ export class TokenService implements ITokenService {
       sub: input.userId,
       uuid: input.userUuid,
       email: input.email,
-      organizationId: input.organizationId,
-      userTypeCode: input.userTypeCode,
       sessionHash: input.sessionHash,
     };
 

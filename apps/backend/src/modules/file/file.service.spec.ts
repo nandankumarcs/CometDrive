@@ -6,7 +6,7 @@ import {
   FilePlaybackProgressEntity,
   FileVideoCommentEntity,
   FolderEntity,
-  OrganizationEntity,
+  UserEntity,
   Share,
   SharePermission,
 } from '@src/entities';
@@ -22,7 +22,7 @@ describe('FileService', () => {
   let videoCommentModel: typeof FileVideoCommentEntity;
   let folderModel: typeof FolderEntity;
   let shareModel: typeof Share;
-  let organizationModel: typeof OrganizationEntity;
+  let userModel: typeof UserEntity;
   let storageService: StorageService;
   let auditService: AuditService;
 
@@ -114,7 +114,7 @@ describe('FileService', () => {
     getBucket: jest.fn().mockReturnValue(null),
   };
 
-  const mockOrganizationModel = {
+  const mockUserModel = {
     findByPk: jest.fn().mockResolvedValue({
       id: 1,
       storage_used: 0,
@@ -153,8 +153,8 @@ describe('FileService', () => {
           useValue: mockShareModel,
         },
         {
-          provide: getModelToken(OrganizationEntity),
-          useValue: mockOrganizationModel,
+          provide: getModelToken(UserEntity),
+          useValue: mockUserModel,
         },
         {
           provide: StorageService,
@@ -177,6 +177,7 @@ describe('FileService', () => {
     );
     folderModel = module.get<typeof FolderEntity>(getModelToken(FolderEntity));
     shareModel = module.get<typeof Share>(getModelToken(Share));
+    userModel = module.get<typeof UserEntity>(getModelToken(UserEntity));
     storageService = module.get<StorageService>(StorageService);
     auditService = module.get<AuditService>(AuditService);
 

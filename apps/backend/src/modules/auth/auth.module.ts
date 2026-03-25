@@ -7,13 +7,7 @@ import { TokenService } from './services/token.service';
 import { SessionService } from './services/session.service';
 import { JwtAuthGuard, RolesGuard } from './guards';
 import { InvitationModule } from '../invitation/invitation.module';
-import {
-  UserEntity,
-  UserTypeEntity,
-  OrganizationEntity,
-  SessionEntity,
-  PasswordResetEntity,
-} from '@src/entities';
+import { UserEntity, UserTypeEntity, SessionEntity, PasswordResetEntity } from '@src/entities';
 
 /**
  * Auth Module
@@ -25,13 +19,7 @@ import {
  */
 @Module({
   imports: [
-    SequelizeModule.forFeature([
-      UserEntity,
-      UserTypeEntity,
-      OrganizationEntity,
-      SessionEntity,
-      PasswordResetEntity,
-    ]),
+    SequelizeModule.forFeature([UserEntity, UserTypeEntity, SessionEntity, PasswordResetEntity]),
     forwardRef(() => InvitationModule),
   ],
   controllers: [AuthController],

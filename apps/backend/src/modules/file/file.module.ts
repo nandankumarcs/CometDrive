@@ -6,7 +6,6 @@ import {
   FileVideoCommentEntity,
   FolderEntity,
   AuditLogEntity,
-  OrganizationEntity,
   UserEntity,
   Share,
 } from '@src/entities';
@@ -24,7 +23,6 @@ import { AuthModule } from '../auth/auth.module';
       FileVideoCommentEntity,
       FolderEntity,
       AuditLogEntity,
-      OrganizationEntity,
       UserEntity,
       Share,
     ]),

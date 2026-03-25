@@ -98,14 +98,14 @@ export function Header() {
               </div>
 
               {/* Storage Widget */}
-              {user?.organization && (
+              {user && (
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                     <span>Storage</span>
                     <span>
                       {Math.round(
-                        (parseInt(user.organization.storage_used) /
-                          parseInt(user.organization.max_storage)) *
+                        (parseInt(user.storage_used || '0') /
+                          parseInt(user.max_storage || '1073741824')) *
                           100,
                       )}
                       % used
@@ -116,8 +116,8 @@ export function Header() {
                       className="bg-primary-500 h-1.5 rounded-full"
                       style={{
                         width: `${Math.min(
-                          (parseInt(user.organization.storage_used) /
-                            parseInt(user.organization.max_storage)) *
+                          (parseInt(user.storage_used || '0') /
+                            parseInt(user.max_storage || '1073741824')) *
                             100,
                           100,
                         )}%`,
@@ -125,8 +125,8 @@ export function Header() {
                     ></div>
                   </div>
                   <div className="text-xs text-gray-400 dark:text-gray-500 text-right">
-                    {formatBytes(parseInt(user.organization.storage_used))} of{' '}
-                    {formatBytes(parseInt(user.organization.max_storage))}
+                    {formatBytes(parseInt(user.storage_used || '0'))} of{' '}
+                    {formatBytes(parseInt(user.max_storage || '1073741824'))}
                   </div>
                 </div>
               )}

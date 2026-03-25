@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/sequelize';
 import { AllConfigType } from '@src/config/config.type';
-import { UserEntity, UserTypeEntity, OrganizationEntity, PasswordResetEntity } from '@src/entities';
+import { UserEntity, UserTypeEntity, PasswordResetEntity } from '@src/entities';
 import { EmailService } from '@src/commons/services';
 import {
   RegisterDto,
@@ -53,8 +53,6 @@ export class AuthService {
     private readonly userModel: typeof UserEntity,
     @InjectModel(UserTypeEntity)
     private readonly userTypeModel: typeof UserTypeEntity,
-    @InjectModel(OrganizationEntity)
-    private readonly organizationModel: typeof OrganizationEntity,
     @InjectModel(PasswordResetEntity)
     private readonly passwordResetModel: typeof PasswordResetEntity,
   ) {
@@ -77,13 +75,7 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    // Create organization
-    const organization = await this.organizationModel.create({
-      name: dto.organizationName,
-    });
-
-    // Resolve user type
-    const userTypeId = await this.resolveUserType(dto.userTypeId);
+    const userTypeId = await this.resolveUserType();
 
     // Create user with hashed password
     const hashedPassword = await this.passwordService.hash(dto.password);
@@ -93,7 +85,7 @@ export class AuthService {
       email: dto.email.toLowerCase(),
       phone: dto.phone || null,
       password: hashedPassword,
-      organization_id: organization.id,
+      organization_id: null,
       user_type_id: userTypeId,
     });
 
@@ -105,7 +97,7 @@ export class AuthService {
 
     // Fetch user with relations
     const userWithRelations = await this.userModel.findByPk(user.id, {
-      include: [UserTypeEntity, OrganizationEntity],
+      include: [UserTypeEntity],
       attributes: { exclude: ['password'] },
     });
 
@@ -115,10 +107,18 @@ export class AuthService {
   async registerWithToken(dto: RegisterWithTokenDto, ipAddress?: string, userAgent?: string) {
     // Validate invitation token
     const invitation = await this.invitationService.validateToken(dto.token);
+    const registrationEmail = dto.email.toLowerCase();
+
+    if (
+      !this.isGenericInvitationEmail(invitation.email) &&
+      invitation.email !== registrationEmail
+    ) {
+      throw new ConflictException('This invite is tied to a different email address');
+    }
 
     // Check if email is already registered
     const existingUser = await this.userModel.findOne({
-      where: { email: invitation.email.toLowerCase(), deleted_at: null },
+      where: { email: registrationEmail, deleted_at: null },
     });
 
     if (existingUser) {
@@ -129,23 +129,18 @@ export class AuthService {
       throw new ConflictException('Email already registered. Please login instead.');
     }
 
-    // Get organization from inviter
-    const inviter = await this.userModel.findByPk(invitation.invited_by);
-    if (!inviter) {
-      throw new NotFoundException('Inviter organization not found');
-    }
-    const organizationId = inviter.organization_id;
+    const userTypeId = await this.resolveUserType();
 
     // Create user
     const hashedPassword = await this.passwordService.hash(dto.password);
     const user = await this.userModel.create({
       first_name: dto.firstName,
       last_name: dto.lastName,
-      email: invitation.email.toLowerCase(),
+      email: registrationEmail,
       phone: null,
       password: hashedPassword,
-      organization_id: organizationId,
-      user_type_id: invitation.user_type_id,
+      organization_id: null,
+      user_type_id: userTypeId,
     });
 
     // Mark invitation as accepted
@@ -159,7 +154,7 @@ export class AuthService {
 
     // Fetch user with relations
     const userWithRelations = await this.userModel.findByPk(user.id, {
-      include: [UserTypeEntity, OrganizationEntity],
+      include: [UserTypeEntity],
       attributes: { exclude: ['password'] },
     });
 
@@ -169,7 +164,7 @@ export class AuthService {
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await this.userModel.findOne({
       where: { email: dto.email.toLowerCase(), deleted_at: null },
-      include: [UserTypeEntity, OrganizationEntity],
+      include: [UserTypeEntity],
     });
 
     if (!user) {
@@ -191,7 +186,7 @@ export class AuthService {
 
   async getMe(userId: number) {
     const user = await this.userModel.findByPk(userId, {
-      include: [UserTypeEntity, OrganizationEntity],
+      include: [UserTypeEntity],
     });
 
     if (!user) {
@@ -228,8 +223,6 @@ export class AuthService {
       userId: user.id,
       userUuid: user.uuid,
       email: user.email,
-      organizationId: user.organization_id,
-      userTypeCode: user.user_type?.code || '',
       sessionHash: session.hash,
     });
 
@@ -354,11 +347,7 @@ export class AuthService {
 
   // Private helper methods
 
-  private async resolveUserType(userTypeId?: number): Promise<number> {
-    if (userTypeId) {
-      return userTypeId;
-    }
-
+  private async resolveUserType(): Promise<number> {
     const defaultUserType = await this.userTypeModel.findOne({
       where: { code: 'USER', is_active: true },
     });
@@ -368,6 +357,10 @@ export class AuthService {
     }
 
     return defaultUserType.id;
+  }
+
+  private isGenericInvitationEmail(email: string): boolean {
+    return email.startsWith('invite+') && email.endsWith('@comet.local');
   }
 
   private async createSessionAndTokens(
@@ -387,8 +380,6 @@ export class AuthService {
       userId: user.id,
       userUuid: user.uuid,
       email: user.email,
-      organizationId: user.organization_id,
-      userTypeCode: user.user_type?.code || '',
       sessionHash: session.hash,
     });
   }

@@ -32,6 +32,10 @@ node_modules
 npm-debug.log
 yarn-error.log
 testem.log
+
+# Local backend/runtime logs
+apps/backend/logs/
+apps/backend/*.log
 /typings
 
 # System Files

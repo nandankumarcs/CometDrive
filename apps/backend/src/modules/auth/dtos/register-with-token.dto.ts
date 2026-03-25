@@ -1,11 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class RegisterWithTokenDto {
   @ApiProperty({ example: 'a1b2c3d4...', description: 'Invitation token' })
   @IsString()
   @IsNotEmpty()
   token: string;
+
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
   @ApiProperty({ example: 'John' })
   @IsString()

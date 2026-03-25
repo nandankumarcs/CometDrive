@@ -26,8 +26,6 @@ export interface TokenPayloadInput {
   userId: number;
   userUuid: string;
   email: string;
-  organizationId: number;
-  userTypeCode: string;
   sessionHash: string;
 }
 

@@ -3,7 +3,9 @@ import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:3000';
+const frontendPort = process.env['FRONTEND_PORT'] || '3000';
+const backendApiUrl = process.env['BACKEND_API_URL'] || 'http://localhost:3001/api';
+const baseURL = process.env['BASE_URL'] || `http://localhost:${frontendPort}`;
 
 /**
  * Read environment variables from file.
@@ -24,8 +26,8 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npx nx run frontend:dev',
-    url: 'http://localhost:3000',
+    command: `PORT=${frontendPort} NEXT_PUBLIC_API_URL=${backendApiUrl} npx nx run frontend:dev`,
+    url: baseURL,
     reuseExistingServer: true,
     cwd: workspaceRoot,
   },
