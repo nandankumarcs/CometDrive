@@ -221,6 +221,8 @@ The backend is wired for strategy-based storage:
 - `local` storage works out of the box for development
 - `s3` storage is available via `FILE_DRIVER=s3`
 - S3 mode uses `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_S3_BUCKET`, and `AWS_S3_REGION`
+- S3-compatible providers such as Cloudflare R2 can also be used by setting `AWS_S3_ENDPOINT`
+- Set `AWS_S3_FORCE_PATH_STYLE=true` only if your S3-compatible provider requires path-style requests
 
 ### Mail and SMS
 
@@ -245,7 +247,24 @@ The backend is wired for strategy-based storage:
 
 ### Render
 
-[`render.yaml`](./render.yaml) includes a two-service blueprint for deploying the backend and frontend separately on Render.
+[`render.yaml`](./render.yaml) includes a two-service blueprint for deploying the backend and frontend separately on Render's free tier.
+
+Use the repository root as the Render service root directory for both services.
+
+The backend service:
+
+- builds with `npm install && npx nx build backend`
+- starts with `cd apps/backend && node dist/main.js`
+- expects your PostgreSQL, Redis, S3-compatible storage, and any mail/SMS secrets to be set in Render environment variables
+- now honors Render's injected `PORT` automatically
+
+The frontend service:
+
+- builds with `npm install && NEXT_PUBLIC_API_URL=http://$COMET_BACKEND_HOSTPORT npx nx build frontend`
+- starts with `cd apps/frontend && NEXT_PUBLIC_API_URL=http://$COMET_BACKEND_HOSTPORT npx next start -p ${PORT:-10000}`
+- proxies browser requests through Next.js to the backend's private Render hostname instead of exposing an internal service URL directly to the browser
+
+If you keep the default service names from the blueprint, the backend CORS values already line up with `https://comet-frontend.onrender.com` and `https://comet-backend.onrender.com`. If you rename either Render service, update `FRONTEND_DOMAIN` and `BACKEND_DOMAIN` to match the final public URLs.
 
 ## Why This Repo Works Well As A Starter
 

@@ -30,12 +30,16 @@ class EnvironmentVariablesValidator {
 export default registerAs<AppConfig>('app', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
+  const renderPort = process.env.PORT;
+  const explicitAppPort = process.env.APP_PORT;
+  const resolvedPort = explicitAppPort ?? renderPort;
+
   return {
     env: process.env.ENV || EnvironmentEnum.Production,
     name: process.env.APP_NAME || 'NestJS Boilerplate',
     frontendDomain: process.env.FRONTEND_DOMAIN ?? 'http://localhost:3000',
     backendDomain: process.env.BACKEND_DOMAIN ?? 'http://localhost',
-    port: process.env.APP_PORT ? parseInt(process.env.APP_PORT, 10) : 3001,
+    port: resolvedPort ? parseInt(resolvedPort, 10) : 3001,
     apiPrefix: process.env.API_PREFIX ?? 'api',
   };
 });
