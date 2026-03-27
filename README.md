@@ -266,6 +266,35 @@ The frontend service:
 
 If you keep the default service names from the blueprint, the backend CORS values already line up with `https://comet-frontend.onrender.com` and `https://comet-backend.onrender.com`. If you rename either Render service, update `FRONTEND_DOMAIN` and `BACKEND_DOMAIN` to match the final public URLs.
 
+### Cloudflare + Cold-Start Backend
+
+If you want to avoid a Cloudflare Workers backend rewrite, the lowest-friction hosted split is:
+
+- frontend on Cloudflare Workers via OpenNext
+- backend on a traditional Node host that can cold start, such as Render or Koyeb
+
+The frontend workspace now includes Cloudflare-specific files in [`apps/frontend/wrangler.jsonc`](./apps/frontend/wrangler.jsonc) and [`apps/frontend/open-next.config.ts`](./apps/frontend/open-next.config.ts), plus these scripts in [`apps/frontend/package.json`](./apps/frontend/package.json):
+
+- `npm run cf:build --workspace frontend`
+- `npm run cf:preview --workspace frontend`
+- `npm run cf:deploy --workspace frontend`
+
+Set `NEXT_PUBLIC_API_URL` in the Cloudflare project to your backend base URL, for example `https://your-backend-host/api`.
+
+To deploy the frontend from `apps/frontend`:
+
+```bash
+npm install
+NEXT_PUBLIC_API_URL=https://your-backend-host/api npm run cf:build --workspace frontend
+NEXT_PUBLIC_API_URL=https://your-backend-host/api npm run cf:deploy --workspace frontend
+```
+
+Notes:
+
+- OpenNext generates build artifacts into `apps/frontend/.open-next`, which is intentionally gitignored
+- the current workspace builds successfully for Cloudflare, but OpenNext emits warnings about the root TypeScript path aliases in `tsconfig.base.json`
+- the backend can stay on a regular Node platform, which preserves file uploads, Sequelize, Redis, and NestJS behavior without a Workers migration
+
 ## Why This Repo Works Well As A Starter
 
 - It is opinionated enough to demonstrate real product flows, not just framework wiring
