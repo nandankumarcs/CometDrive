@@ -13,8 +13,8 @@ COPY packages/sms ./packages/sms
 # npm install is more reliable than npm ci for this repo's generated lockfile flow.
 RUN npm install
 
-# The backend build expects referenced workspace library declarations to exist.
-RUN npx nx run-many -t typecheck -p mailer,sms
+# In the reduced Docker workspace, Nx sync checks can report false positives.
+RUN npx nx run-many -t typecheck -p mailer,sms --skipSync
 
 # Produce a backend-only runtime bundle and pruned lockfile.
 RUN npx nx run backend:prune
