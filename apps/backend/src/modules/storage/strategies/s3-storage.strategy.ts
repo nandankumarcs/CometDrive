@@ -19,8 +19,14 @@ export class S3StorageStrategy implements StorageInterface {
 
   constructor(private readonly configService: ConfigService<AllConfigType>) {
     const region = this.configService.get('file.awsS3Region', { infer: true });
+    const endpoint = this.configService.get('file.awsS3Endpoint', { infer: true });
+    const configuredForcePathStyle = this.configService.get('file.awsS3ForcePathStyle', {
+      infer: true,
+    });
     const accessKeyId = this.configService.get('file.accessKeyId', { infer: true });
     const secretAccessKey = this.configService.get('file.secretAccessKey', { infer: true });
+    const isBackblazeB2 = endpoint?.includes('backblazeb2.com') ?? false;
+    const forcePathStyle = configuredForcePathStyle || isBackblazeB2;
 
     this.bucketName = this.configService.get('file.awsDefaultS3Bucket', { infer: true }) || '';
 
@@ -28,12 +34,27 @@ export class S3StorageStrategy implements StorageInterface {
       this.logger.warn('AWS S3 credentials not fully configured. S3Strategy might fail.');
     }
 
+    if (endpoint) {
+      this.logger.log(`Using custom S3 endpoint: ${endpoint}`);
+    }
+
+    if (isBackblazeB2 && !configuredForcePathStyle) {
+      this.logger.log('Enabling forcePathStyle automatically for Backblaze B2 compatibility.');
+    }
+
+    const credentials =
+      accessKeyId && secretAccessKey
+        ? {
+            accessKeyId,
+            secretAccessKey,
+          }
+        : undefined;
+
     this.s3Client = new S3Client({
       region,
-      credentials: {
-        accessKeyId: accessKeyId || '',
-        secretAccessKey: secretAccessKey || '',
-      },
+      credentials,
+      endpoint,
+      forcePathStyle,
     });
   }
 
