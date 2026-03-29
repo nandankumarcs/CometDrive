@@ -17,7 +17,7 @@ RUN npm install
 RUN npx nx run-many -t typecheck -p mailer,sms --skipSync
 
 # Produce a backend-only runtime bundle and pruned lockfile.
-RUN npx nx run backend:prune
+RUN npx nx run backend:prune --skipSync
 
 FROM node:24-alpine AS runner
 
