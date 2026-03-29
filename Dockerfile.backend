@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy only the backend workspace inputs needed for a cached Nx build.
-COPY package.json package-lock.json nx.json tsconfig.base.json ./
+COPY package.json package-lock.json nx.json tsconfig.json tsconfig.base.json ./
 COPY apps/backend ./apps/backend
 COPY packages/mailer ./packages/mailer
 COPY packages/sms ./packages/sms
