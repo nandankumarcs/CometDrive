@@ -172,13 +172,19 @@ export class FileService {
       where.folder_id = null;
     }
 
+    if (isTrashed) {
+      where.deleted_at = { [Op.not]: null };
+    }
+
     if (hasSearch) {
       if (!folderUuid) {
         delete where.folder_id;
       }
 
       const dialect = this.fileModel.sequelize?.getDialect();
-      if (dialect === 'postgres') {
+      if (normalizedSearch && normalizedSearch.length < 3) {
+        where.name = { [Op.iLike]: `%${normalizedSearch}%` };
+      } else if (dialect === 'postgres') {
         const tsvector = fn('to_tsvector', 'simple', fn('coalesce', col('name'), ''));
         const tsquery = fn('websearch_to_tsquery', 'simple', normalizedSearch);
         const similarityScore = fn(

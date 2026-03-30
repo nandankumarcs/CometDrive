@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import api from '../lib/api';
 import type { AuthUser, LoginResponse, RegisterResponse } from '../schemas/auth.schema';
+import { useDriveStore } from './drive.store';
 
 interface AuthState {
   user: AuthUser | null;
@@ -20,6 +21,7 @@ interface AuthState {
     lastName: string,
     password: string,
   ) => Promise<void>;
+  refreshCurrentUser: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
   _hasHydrated: boolean;
@@ -42,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const res = await api.post<LoginResponse>('/auth/login', { email, password });
             const { accessToken, refreshToken, user } = res.data.data;
+            useDriveStore.getState().resetState();
             set({
               user,
               accessToken,
@@ -66,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
               password,
             });
             const { accessToken, refreshToken, user } = res.data.data;
+            useDriveStore.getState().resetState();
             set({
               user,
               accessToken,
@@ -91,6 +95,7 @@ export const useAuthStore = create<AuthState>()(
               password,
             });
             const { accessToken, refreshToken, user } = res.data.data;
+            useDriveStore.getState().resetState();
             set({
               user,
               accessToken,
@@ -105,7 +110,22 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
+        refreshCurrentUser: async () => {
+          try {
+            const res = await api.get<{ data: AuthUser }>('/auth/me');
+            const user = res.data.data;
+            set((state) => ({
+              user,
+              isAuthenticated: state.accessToken ? true : state.isAuthenticated,
+            }));
+          } catch (err) {
+            // Keep the existing session state if a background refresh fails.
+            console.warn('[AuthStore] Failed to refresh current user', err);
+          }
+        },
+
         logout: () => {
+          useDriveStore.getState().resetState();
           set({
             user: null,
             accessToken: null,

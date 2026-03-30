@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useDriveStore } from '../store/drive.store';
+import { useAuthStore } from '../store/auth.store';
 
 export interface FileItem {
   id: number;
@@ -60,6 +61,7 @@ export function useToggleStarFile() {
 export function useUploadFile() {
   const qc = useQueryClient();
   const { addUpload, updateUploadProgress, completeUpload, failUpload } = useDriveStore();
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
 
   return useMutation({
     mutationFn: async ({ file, folderUuid }: { file: File; folderUuid?: string }) => {
@@ -88,7 +90,10 @@ export function useUploadFile() {
         throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ['files'] });
+      await refreshCurrentUser();
+    },
   });
 }
 
@@ -125,21 +130,29 @@ export function useRestoreFile() {
 
 export function useDeleteFilePermanent() {
   const qc = useQueryClient();
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
   return useMutation({
     mutationFn: async (uuid: string) => {
       await api.delete(`/files/${uuid}/permanent`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ['files'] });
+      await refreshCurrentUser();
+    },
   });
 }
 
 export function useEmptyTrashFiles() {
   const qc = useQueryClient();
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
   return useMutation({
     mutationFn: async () => {
       await api.delete('/files/trash/empty');
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['files'] }),
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ['files'] });
+      await refreshCurrentUser();
+    },
   });
 }
 
