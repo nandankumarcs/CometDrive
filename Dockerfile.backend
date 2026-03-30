@@ -14,6 +14,8 @@ COPY packages/sms ./packages/sms
 RUN NODE_OPTIONS="--max-old-space-size=1536" npm install
 
 # The backend build expects referenced workspace library declarations to exist.
+# Run nx sync first to fix TypeScript project references in non-interactive environments
+RUN npx nx sync
 RUN npx nx run-many -t typecheck -p mailer,sms
 
 # Produce a pruned backend runtime with a backend-only lockfile.
