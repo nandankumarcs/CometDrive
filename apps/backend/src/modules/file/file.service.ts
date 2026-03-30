@@ -416,7 +416,7 @@ export class FileService {
     // Update storage usage
     const fileOwner = await this.userModel.findByPk(file.user_id);
     if (fileOwner) {
-      await fileOwner.decrement('storage_used', { by: file.size });
+      await this.decrementStorageUsage(fileOwner, file.size);
     }
 
     const folder = file.folder_id ? await this.folderModel.findByPk(file.folder_id) : null;
@@ -443,13 +443,27 @@ export class FileService {
     });
 
     const itemsToDelete = trashedFiles.filter((f) => f.deleted_at !== null);
+    const trashedFolderIds = new Set(
+      (
+        await this.folderModel.findAll({
+          where: { user_id: user.id },
+          attributes: ['id'],
+          paranoid: false,
+        })
+      )
+        .filter((folder) => folder.deleted_at !== null)
+        .map((folder) => folder.id),
+    );
+    const standaloneFiles = itemsToDelete.filter(
+      (file) => file.folder_id === null || !trashedFolderIds.has(file.folder_id),
+    );
 
-    if (itemsToDelete.length === 0) {
+    if (standaloneFiles.length === 0) {
       return { success: true, count: 0 };
     }
 
     let totalSize = 0;
-    for (const file of itemsToDelete) {
+    for (const file of standaloneFiles) {
       try {
         await this.storageService.delete(file.storage_path);
         totalSize += file.size;
@@ -463,18 +477,24 @@ export class FileService {
     // Update storage usage
     const fileOwner = await this.userModel.findByPk(user.id);
     if (fileOwner && totalSize > 0) {
-      await fileOwner.decrement('storage_used', { by: totalSize });
+      await this.decrementStorageUsage(fileOwner, totalSize);
     }
 
     await this.auditService.log(
       'FILE_EMPTY_TRASH',
       user,
-      { count: itemsToDelete.length },
+      { count: standaloneFiles.length },
       undefined,
       'file',
     );
 
-    return { success: true, count: itemsToDelete.length };
+    return { success: true, count: standaloneFiles.length };
+  }
+
+  private async decrementStorageUsage(user: UserEntity, by: number) {
+    const currentUsage = parseInt(user.storage_used as any, 10) || 0;
+    const nextUsage = Math.max(currentUsage - by, 0);
+    await user.update({ storage_used: nextUsage });
   }
 
   async getDownloadStream(uuid: string, user: UserEntity) {

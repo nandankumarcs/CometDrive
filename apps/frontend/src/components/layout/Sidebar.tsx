@@ -20,8 +20,11 @@ export function Sidebar() {
   };
 
   const { user } = useAuthStore();
-  const storageUsed = parseInt(user?.storage_used || '0', 10);
-  const maxStorage = parseInt(user?.max_storage || '1073741824', 10);
+  const rawStorageUsed = Number.parseInt(String(user?.storage_used ?? '0'), 10);
+  const rawMaxStorage = Number.parseInt(String(user?.max_storage ?? '1073741824'), 10);
+  const storageUsed = Number.isFinite(rawStorageUsed) ? Math.max(rawStorageUsed, 0) : 0;
+  const maxStorage =
+    Number.isFinite(rawMaxStorage) && rawMaxStorage > 0 ? rawMaxStorage : 1073741824;
   const percentage = Math.min((storageUsed / maxStorage) * 100, 100);
 
   const formatSize = (bytes: number) => {

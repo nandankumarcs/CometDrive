@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useDriveStore } from '../store/drive.store';
+import { useAuthStore } from '../store/auth.store';
 
 export interface Folder {
   id: number;
@@ -112,20 +113,30 @@ export function useRestoreFolder() {
 
 export function useDeleteFolderPermanent() {
   const qc = useQueryClient();
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
   return useMutation({
     mutationFn: async (uuid: string) => {
       await api.delete(`/folders/${uuid}/permanent`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['files'] });
+      await refreshCurrentUser();
+    },
   });
 }
 
 export function useEmptyTrashFolders() {
   const qc = useQueryClient();
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
   return useMutation({
     mutationFn: async () => {
       await api.delete('/folders/trash/empty');
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['files'] });
+      await refreshCurrentUser();
+    },
   });
 }

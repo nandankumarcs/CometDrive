@@ -80,7 +80,9 @@ export default function TrashPage() {
     if (
       confirm('Are you sure you want to empty the trash? This will permanently delete all items.')
     ) {
-      await Promise.all([emptyTrashFiles.mutateAsync(), emptyTrashFolders.mutateAsync()]);
+      // Empty trashed folders first so nested files are removed once as part of folder cleanup.
+      await emptyTrashFolders.mutateAsync();
+      await emptyTrashFiles.mutateAsync();
     }
   };
 

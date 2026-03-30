@@ -34,8 +34,11 @@ export default function SettingsPage() {
 
   if (!mounted) return null;
 
-  const storageUsed = user ? parseInt(user.storage_used || '0') : 0;
-  const maxStorage = user ? parseInt(user.max_storage || '1073741824') : 0;
+  const rawStorageUsed = user ? Number.parseInt(String(user.storage_used ?? '0'), 10) : 0;
+  const rawMaxStorage = user ? Number.parseInt(String(user.max_storage ?? '1073741824'), 10) : 0;
+  const storageUsed = Number.isFinite(rawStorageUsed) ? Math.max(rawStorageUsed, 0) : 0;
+  const maxStorage =
+    Number.isFinite(rawMaxStorage) && rawMaxStorage > 0 ? rawMaxStorage : 1073741824;
   const storagePercent = maxStorage > 0 ? (storageUsed / maxStorage) * 100 : 0;
   const inviteError =
     (createInvitation.error as { response?: { data?: { message?: string } } } | null)?.response

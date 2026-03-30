@@ -24,6 +24,12 @@ export function Header() {
   const queryClient = useQueryClient();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const rawStorageUsed = Number.parseInt(String(user?.storage_used ?? '0'), 10);
+  const rawMaxStorage = Number.parseInt(String(user?.max_storage ?? '1073741824'), 10);
+  const storageUsed = Number.isFinite(rawStorageUsed) ? Math.max(rawStorageUsed, 0) : 0;
+  const maxStorage =
+    Number.isFinite(rawMaxStorage) && rawMaxStorage > 0 ? rawMaxStorage : 1073741824;
+  const storagePercent = Math.min(Math.round((storageUsed / maxStorage) * 100), 100);
 
   const handleLogout = () => {
     queryClient.clear();
@@ -88,31 +94,18 @@ export function Header() {
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                     <span>Storage</span>
-                    <span>
-                      {Math.round(
-                        (parseInt(user.storage_used || '0') /
-                          parseInt(user.max_storage || '1073741824')) *
-                          100,
-                      )}
-                      % used
-                    </span>
+                    <span>{storagePercent}% used</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
                     <div
                       className="bg-primary-500 h-1.5 rounded-full"
                       style={{
-                        width: `${Math.min(
-                          (parseInt(user.storage_used || '0') /
-                            parseInt(user.max_storage || '1073741824')) *
-                            100,
-                          100,
-                        )}%`,
+                        width: `${storagePercent}%`,
                       }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-400 dark:text-gray-500 text-right">
-                    {formatBytes(parseInt(user.storage_used || '0'))} of{' '}
-                    {formatBytes(parseInt(user.max_storage || '1073741824'))}
+                    {formatBytes(storageUsed)} of {formatBytes(maxStorage)}
                   </div>
                 </div>
               )}

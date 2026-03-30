@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { FolderEntity, Share, SharePermission, UserEntity } from '@src/entities';
+import { FileEntity, FolderEntity, Share, SharePermission, UserEntity } from '@src/entities';
 import { Op, col, fn, literal, where as sequelizeWhere } from 'sequelize';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AuditService } from '@src/commons/services';
+import { StorageService } from '@src/modules/storage/storage.service';
 
 const SEARCH_SIMILARITY_THRESHOLD = 0.22;
 
@@ -13,9 +14,14 @@ export class FolderService {
   constructor(
     @InjectModel(FolderEntity)
     private readonly folderModel: typeof FolderEntity,
+    @InjectModel(FileEntity)
+    private readonly fileModel: typeof FileEntity,
     @InjectModel(Share)
     private readonly shareModel: typeof Share,
+    @InjectModel(UserEntity)
+    private readonly userModel: typeof UserEntity,
     private readonly auditService: AuditService,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(createFolderDto: CreateFolderDto, user: UserEntity) {
@@ -216,7 +222,15 @@ export class FolderService {
     }
 
     const folderId = folder.id;
+    const totalSize = await this.deleteFolderTreeFiles(folder);
     await folder.destroy({ force: true });
+
+    if (totalSize > 0) {
+      const folderOwner = await this.userModel.findByPk(folder.user_id);
+      if (folderOwner) {
+        await this.decrementStorageUsage(folderOwner, totalSize);
+      }
+    }
 
     await this.auditService.log('FOLDER_DELETE_PERMANENT', user, { uuid }, folderId, 'folder');
 
@@ -235,8 +249,22 @@ export class FolderService {
       return { success: true, count: 0 };
     }
 
-    for (const folder of itemsToDelete) {
+    const trashedFolderIds = new Set(itemsToDelete.map((folder) => folder.id));
+    const rootFolders = itemsToDelete.filter(
+      (folder) => folder.parent_id === null || !trashedFolderIds.has(folder.parent_id),
+    );
+
+    let totalSize = 0;
+    for (const folder of rootFolders) {
+      totalSize += await this.deleteFolderTreeFiles(folder);
       await folder.destroy({ force: true });
+    }
+
+    if (totalSize > 0) {
+      const folderOwner = await this.userModel.findByPk(user.id);
+      if (folderOwner) {
+        await this.decrementStorageUsage(folderOwner, totalSize);
+      }
     }
 
     await this.auditService.log(
@@ -294,6 +322,53 @@ export class FolderService {
     }
 
     return folder;
+  }
+
+  private async deleteFolderTreeFiles(folder: FolderEntity): Promise<number> {
+    const folderIds = await this.getFolderTreeIds(folder.id);
+    const files = await this.fileModel.findAll({
+      where: {
+        user_id: folder.user_id,
+        folder_id: { [Op.in]: folderIds },
+      },
+      paranoid: false,
+    });
+
+    let totalSize = 0;
+    for (const file of files) {
+      await this.storageService.delete(file.storage_path);
+      totalSize += file.size;
+    }
+
+    return totalSize;
+  }
+
+  private async getFolderTreeIds(folderId: number): Promise<number[]> {
+    const query = `
+      WITH RECURSIVE folder_tree AS (
+        SELECT id, parent_id
+        FROM folder
+        WHERE id = :folderId
+        UNION ALL
+        SELECT f.id, f.parent_id
+        FROM folder f
+        INNER JOIN folder_tree ft ON f.parent_id = ft.id
+      )
+      SELECT id FROM folder_tree;
+    `;
+
+    const results = await this.folderModel.sequelize?.query<{ id: number }>(query, {
+      replacements: { folderId },
+      type: 'SELECT',
+    });
+
+    return (results || []).map((row) => row.id);
+  }
+
+  private async decrementStorageUsage(user: UserEntity, by: number) {
+    const currentUsage = parseInt(user.storage_used as any, 10) || 0;
+    const nextUsage = Math.max(currentUsage - by, 0);
+    await user.update({ storage_used: nextUsage });
   }
 
   private async findAccessibleFolder(uuid: string, user: UserEntity) {
