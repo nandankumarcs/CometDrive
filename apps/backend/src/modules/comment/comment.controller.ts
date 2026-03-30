@@ -6,7 +6,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @ApiTags('comments')
 @ApiBearerAuth()
-@Controller('comments')
+@Controller({ path: 'comments', version: '1' })
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 

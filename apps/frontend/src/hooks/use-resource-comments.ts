@@ -35,8 +35,9 @@ export function useCreateResourceComment() {
       resourceUuid: string;
       content: string;
     }) => {
-      const res = await api.post(`/comments/${payload.resourceType}/${payload.resourceUuid}`, {
+      const res = await api.post('/comments', {
         content: payload.content,
+        [payload.resourceType === 'file' ? 'fileUuid' : 'folderUuid']: payload.resourceUuid,
       });
       return res.data.data;
     },
