@@ -7,7 +7,6 @@ import { useFiles, useDownloadFile } from '../../hooks/use-files';
 import { usePlaybackProgress, useUpdatePlaybackProgress } from '../../hooks/use-video-progress';
 import api from '../../lib/api';
 import { VideoPlayer } from './VideoPlayer';
-import { CommentsPanel } from '../collaboration/CommentsPanel';
 import { ImageViewer } from './ImageViewer';
 
 export function FilePreviewModal() {
@@ -17,8 +16,6 @@ export function FilePreviewModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
-  const [currentVideoTime, setCurrentVideoTime] = useState(0);
-  const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
   const { mutate: updatePlaybackProgress } = useUpdatePlaybackProgress();
 
   // Playlist Logic (Video)
@@ -76,23 +73,11 @@ export function FilePreviewModal() {
     [updatePlaybackProgress],
   );
 
-  const handleSeekToComment = useCallback((seconds: number) => {
-    setSeekToSeconds(null);
-    setTimeout(() => setSeekToSeconds(seconds), 0);
-  }, []);
-
-  useEffect(() => {
-    if (!isVideoPreview) return;
-    setCurrentVideoTime(playbackProgress?.positionSeconds ?? 0);
-  }, [isVideoPreview, playbackProgress?.positionSeconds, previewItem?.uuid]);
-
   useEffect(() => {
     if (!previewItem) {
       setSignedUrl(null);
       setTextContent(null);
       setError(null);
-      setCurrentVideoTime(0);
-      setSeekToSeconds(null);
       return;
     }
 
@@ -183,7 +168,7 @@ export function FilePreviewModal() {
 
     if (mimeType.startsWith('video/')) {
       return (
-        <div className="w-full max-w-[1400px] h-full max-h-[85vh] flex flex-col lg:flex-row gap-4">
+        <div className="w-full max-w-[1400px] h-full max-h-[85vh] flex">
           <div className="flex-1 min-h-0">
             <VideoPlayer
               fileUuid={previewItem.uuid}
@@ -191,21 +176,11 @@ export function FilePreviewModal() {
               mimeType={mimeType}
               autoPlay
               initialTimeSeconds={playbackProgress?.positionSeconds ?? 0}
-              seekToSeconds={seekToSeconds}
-              onCurrentTimeChange={setCurrentVideoTime}
               onProgressSync={handleProgressSync}
               onNext={handleNext}
               onPrev={handlePrev}
               hasNext={hasNextVideo}
               hasPrev={hasPrevVideo}
-            />
-          </div>
-          <div className="w-full lg:w-96 h-[45vh] lg:h-full">
-            <CommentsPanel
-              resourceType="file"
-              resourceUuid={previewItem.uuid}
-              currentTime={currentVideoTime}
-              onSeek={handleSeekToComment}
             />
           </div>
         </div>

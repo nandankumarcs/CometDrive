@@ -9,7 +9,6 @@ import {
   Trash2,
   X,
   Info,
-  MessageSquare,
 } from 'lucide-react';
 import { useDriveStore } from '../../store/drive.store';
 import { useEffect, useState } from 'react';
@@ -283,20 +282,6 @@ export function DriveToolbar({ onUpload }: DriveToolbarProps) {
           >
             <Info className="h-5 w-5" />
           </button>
-
-          {store.currentFolderUuid && (
-            <button
-              onClick={store.toggleComments}
-              className={`p-1.5 rounded-lg transition-colors ${
-                store.showComments
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title="View Comments"
-            >
-              <MessageSquare className="h-5 w-5" />
-            </button>
-          )}
 
           {/* View toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
