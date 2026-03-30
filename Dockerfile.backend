@@ -1,44 +1,44 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Install dependencies first (for better caching)
-COPY package*.json ./
-COPY apps/backend/package*.json ./apps/backend/
-COPY apps/frontend/package*.json ./apps/frontend/
-COPY packages/mailer/package*.json ./packages/mailer/
-COPY packages/sms/package*.json ./packages/sms/
+# Copy only files required to resolve the backend workspace first for better caching.
+COPY package.json package-lock.json nx.json tsconfig.json tsconfig.base.json ./
+COPY apps/backend ./apps/backend
+COPY packages/mailer ./packages/mailer
+COPY packages/sms ./packages/sms
 
-RUN npm ci
+# Nx prune output is currently more reliable with npm install than npm ci in this repo.
+RUN NODE_OPTIONS="--max-old-space-size=1536" npm install
 
-# Copy source code
-COPY . .
+# The backend build expects referenced workspace library declarations to exist.
+RUN npx nx run-many -t typecheck -p mailer,sms
 
-# Build the backend
-RUN npx nx build backend
+# Produce a pruned backend runtime with a backend-only lockfile.
+RUN npx nx run backend:prune
 
-# Production stage
-FROM node:18-alpine AS runner
+FROM node:24-alpine AS runner
+
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Copy production dependencies
-COPY package.json package-lock.json ./
-RUN npm install --omit=dev
+# Install only runtime dependencies from the backend's pruned output.
+COPY --from=builder /app/apps/backend/dist/package.json ./package.json
+COPY --from=builder /app/apps/backend/dist/package-lock.json ./package-lock.json
+COPY --from=builder /app/apps/backend/dist/workspace_modules ./workspace_modules
 
-# Copy build output from builder stage
-COPY --from=builder /app/apps/backend/dist ./dist
+# Limit Node memory to prevent OOM in Railway's constrained environment
+RUN NODE_OPTIONS="--max-old-space-size=1536" npm install --omit=dev && npm cache clean --force
 
-# Copy migrations and seeders for database management
-COPY apps/backend/src/database ./src/database
-COPY apps/backend/.sequelizerc ./
+# Copy the compiled server bundle and runtime assets.
+COPY --from=builder /app/apps/backend/dist/main.js ./main.js
+COPY --from=builder /app/apps/backend/dist/main.js.map ./main.js.map
+COPY --from=builder /app/apps/backend/dist/assets ./assets
 
-# Expose backend port
 EXPOSE 3001
 
-# Start the application
-CMD ["node", "dist/main.js"]
+CMD ["node", "main.js"]
