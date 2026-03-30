@@ -615,7 +615,6 @@ export function VideoPlayer({
         style={{ objectFit }}
         onClick={togglePlay}
         loop={loop}
-        crossOrigin="anonymous"
       >
         <source src={src} type={mimeType} />
         {subtitleSrc && (
