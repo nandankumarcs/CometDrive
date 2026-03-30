@@ -27,7 +27,26 @@ export interface UploadItem {
   error?: string;
 }
 
-interface DriveState {
+const initialDriveState = {
+  currentFolderUuid: null,
+  viewMode: 'grid' as ViewMode,
+  selectedItems: [] as ContextItem[],
+  searchQuery: '',
+  sortBy: 'date' as const,
+  sortOrder: 'DESC' as const,
+  filterType: null as string | null,
+  isStarred: false,
+  breadcrumbs: [{ uuid: null, name: 'My Drive' }] as BreadcrumbItem[],
+  activeModal: null as ModalType,
+  contextItem: null as ContextItem | null,
+  previewItem: null as { uuid: string; name: string; mimeType: string } | null,
+  isSidebarOpen: true,
+  showDetails: false,
+  showComments: false,
+  uploads: {} as Record<string, UploadItem>,
+};
+
+export interface DriveState {
   currentFolderUuid: string | null;
   viewMode: ViewMode;
   selectedItems: ContextItem[];
@@ -75,28 +94,13 @@ interface DriveState {
   completeUpload: (id: string) => void;
   failUpload: (id: string, error?: string) => void;
   clearCompletedUploads: () => void;
+  resetState: () => void;
 }
 
 export const useDriveStore = create<DriveState>()(
   devtools(
     (set) => ({
-      currentFolderUuid: null,
-      viewMode: 'grid',
-      selectedItems: [],
-      searchQuery: '',
-      sortBy: 'date',
-      sortOrder: 'DESC',
-      filterType: null,
-      isStarred: false,
-
-      breadcrumbs: [{ uuid: null, name: 'My Drive' }],
-      activeModal: null,
-      contextItem: null,
-      previewItem: null,
-      isSidebarOpen: true,
-      showDetails: false,
-      showComments: false,
-      uploads: {},
+      ...initialDriveState,
 
       setCurrentFolder: (uuid) =>
         set({ currentFolderUuid: uuid, selectedItems: [], searchQuery: '' }),
@@ -183,6 +187,7 @@ export const useDriveStore = create<DriveState>()(
           });
           return { uploads: newUploads };
         }),
+      resetState: () => set(initialDriveState),
     }),
     { name: 'DriveStore' },
   ),
